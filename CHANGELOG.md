@@ -11,6 +11,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Haven uses [Sema
 
 ---
 
+## [2.5.0] — 2026-03-01
+
+### Added
+- **One-click installer** — new bootstrap installers for every platform: `Install Haven.bat` (Windows), `install.sh` (Linux/macOS), and `website/install.sh` / `website/Install Haven.bat` for download-and-run convenience. All download Haven, install Node.js if needed, and launch a local web-based setup wizard (`installer/server.js` + `installer/index.html`) that walks through server name, port, admin account, SSL, and push notification config.
+- **FCM mobile push notifications** — `src/fcm.js` adds Firebase Cloud Messaging support. Three automatic modes: *direct* (place a Firebase service account JSON in the data directory), *custom relay* (set `FCM_RELAY_URL` + `FCM_PUSH_KEY` in `.env`), or *global relay* (no config needed — uses the Haven community relay automatically). Uses the existing `jsonwebtoken` dependency — no firebase-admin SDK required. Mobile tokens are stored in the `fcm_tokens` table and auto-cleaned on delivery failure. Contributed by @anmire (#109).
+- **Push relay** — `haven-push-relay/` contains a standalone Express relay server and a Firebase Cloud Function for self-hosted FCM relay deployments.
+- **Admin-only update banner** — new admin setting (Settings › Members) to hide the "update available" banner from regular members. When enabled, the banner is shown only to admin-role users. Contributed fix for #108.
+- **Windows Inno Setup installer scripts** — `setup.iss` and `master-setup.iss` for building a native Windows `.exe` installer via Inno Setup.
+
+### Fixed
+- **Settings modal not loading 2FA status or roles** — the TOTP status check and roles list were only fetched when navigating to their respective nav items, so opening the modal via shortcuts landed on a blank page. Both are now loaded eagerly whenever the modal opens. Fixes #110.
+- **Desktop app crashed when a friend sent an external server link** — the Electron `handleWindowOpen` handler was loading any URL with an `/app.html` path in-app (including links to friends' servers), and `did-fail-load` always reset to the welcome screen. Fixed: only registered servers load in-app; external servers open in the system browser; load failures on peer servers are handled silently without resetting the UI.
+
+---
+
 ## [2.4.0] — 2026-03-01
 
 ### Added
