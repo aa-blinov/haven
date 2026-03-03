@@ -9611,6 +9611,49 @@ input[type="range"]:not(.rgb-slider)::-moz-range-track {
   }
 }
 
+/* ── Soundboard PiP Overlay ─────────────────────────────── */
+.sb-pip-overlay {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 400px;
+  z-index: 10000;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  resize: both;
+  min-width: 260px;
+  min-height: 220px;
+}
+.sb-pip-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+.sb-pip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 80px;
+}
+@media (max-width: 768px) {
+  .sb-pip-overlay {
+    width: 280px;
+    bottom: 12px;
+    right: 12px;
+  }
+}
+
 /* ── Music Modal extras ────────────────────────────────── */
 
 .music-link-preview {

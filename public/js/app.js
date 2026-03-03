@@ -4099,6 +4099,9 @@ class HavenApp {
       searchInput.addEventListener('input', () => this._renderSoundboard(searchInput.value.trim()));
     }
 
+    // Soundboard popout button
+    document.getElementById('soundboard-popout-btn')?.addEventListener('click', () => this._popOutSoundboard());
+
     // Global hotkey listener
     document.addEventListener('keydown', (e) => {
       // Ignore key-repeat events (holding a key down)
@@ -4161,6 +4164,12 @@ class HavenApp {
   _openSoundModal(tab = 'soundboard') {
     const modal = document.getElementById('sound-modal');
     if (!modal) return;
+    // If soundboard is already popped out, bring it into focus rather than reopening the modal
+    if (this._soundboardPip) {
+      this._soundboardPip.style.zIndex = '10001';
+      setTimeout(() => { if (this._soundboardPip) this._soundboardPip.style.zIndex = '10000'; }, 400);
+      return;
+    }
     // Show admin tab only if user is admin or has manage_soundboard permission
     const adminTab = modal.querySelector('.sound-tab-admin');
     if (adminTab) adminTab.style.display = (this.user?.is_admin || this._hasPerm('manage_soundboard')) ? '' : 'none';
@@ -4172,8 +4181,57 @@ class HavenApp {
     if (tabBtn) tabBtn.classList.add('active');
     if (tabContent) tabContent.classList.add('active');
     modal.style.display = 'flex';
+    // Sync popout button state
+    const popoutBtn = document.getElementById('soundboard-popout-btn');
+    if (popoutBtn) { popoutBtn.textContent = '\u29c9'; popoutBtn.title = 'Pop out soundboard'; }
     this._renderSoundboard();
     this._renderAssignTab();
+  }
+
+  _popOutSoundboard() {
+    if (this._soundboardPip) {
+      this._popInSoundboard();
+      return;
+    }
+
+    // Close the modal
+    document.getElementById('sound-modal').style.display = 'none';
+
+    const pip = document.createElement('div');
+    pip.id = 'sb-pip-overlay';
+    pip.className = 'sb-pip-overlay';
+    pip.innerHTML = `
+      <div class="music-pip-header" id="sb-pip-drag">
+        <button class="music-pip-btn" id="sb-pip-popin" title="Pop back in">\u29c8</button>
+        <span class="music-pip-label">\uD83C\uDFB5 Soundboard</span>
+        <button class="music-pip-btn" id="sb-pip-close" title="Close">\u2715</button>
+      </div>
+      <div class="sb-pip-body">
+        <div class="sound-search-row" style="padding:0;margin-bottom:0">
+          <input type="text" id="sb-pip-search" placeholder="Search sounds..." class="settings-text-input" style="flex:1;font-size:12px">
+        </div>
+        <div id="sb-pip-grid" class="sb-pip-grid"></div>
+      </div>
+    `;
+    document.body.appendChild(pip);
+    this._soundboardPip = pip;
+
+    this._renderSoundboard();
+
+    document.getElementById('sb-pip-search').addEventListener('input', (e) => {
+      this._renderSoundboard(e.target.value.trim());
+    });
+    document.getElementById('sb-pip-popin').addEventListener('click', () => this._popInSoundboard(true));
+    document.getElementById('sb-pip-close').addEventListener('click', () => this._popInSoundboard(false));
+
+    this._initPipDrag(pip, document.getElementById('sb-pip-drag'));
+  }
+
+  _popInSoundboard(reopen = false) {
+    if (!this._soundboardPip) return;
+    this._soundboardPip.remove();
+    this._soundboardPip = null;
+    if (reopen) this._openSoundModal('soundboard');
   }
 
   _playSoundFile(url) {
@@ -4204,8 +4262,8 @@ class HavenApp {
       // Render admin sound list
       this._renderSoundList(sounds);
 
-      // Render soundboard if modal is visible
-      if (document.getElementById('sound-modal')?.style.display === 'flex') {
+      // Render soundboard if modal is visible or PiP is open
+      if (document.getElementById('sound-modal')?.style.display === 'flex' || this._soundboardPip) {
         this._renderSoundboard();
         this._renderAssignTab();
       }
@@ -4364,79 +4422,91 @@ class HavenApp {
   // ── Soundboard Tab ─────────────────────────────────────
 
   _renderSoundboard(filter = '') {
-    const grid = document.getElementById('soundboard-grid');
-    if (!grid) return;
+    // Render into both the modal grid and the PiP grid if it's open
+    const grids = [];
+    const modalGrid = document.getElementById('soundboard-grid');
+    if (modalGrid) grids.push(modalGrid);
+    const pipGrid = this._soundboardPip ? document.getElementById('sb-pip-grid') : null;
+    if (pipGrid) grids.push(pipGrid);
+    if (grids.length === 0) return;
+
     const sounds = (this.customSounds || []).filter(s =>
       !filter || s.name.toLowerCase().includes(filter.toLowerCase())
     );
-    if (sounds.length === 0) {
-      grid.innerHTML = `<p class="muted-text" style="grid-column:1/-1">${filter ? 'No matching sounds' : 'No sounds available'}</p>`;
-      return;
-    }
 
     // Reverse lookup: soundName → hotkey
     const hotkeyMap = {};
     Object.entries(this._soundHotkeys).forEach(([hk, name]) => { hotkeyMap[name] = hk; });
 
-    grid.innerHTML = sounds.map(s => {
-      const hk = hotkeyMap[s.name];
-      const hotkeyHtml = hk
-        ? `<span class="sb-hotkey-row">
-             <span class="sb-hotkey">${this._escapeHtml(hk)}</span>
-             <span class="sb-hotkey-clear" data-sound="${this._escapeHtml(s.name)}" title="Remove hotkey">&times;</span>
-           </span>`
-        : `<span class="sb-hotkey-set" data-sound="${this._escapeHtml(s.name)}">Set hotkey</span>`;
-      return `<button class="soundboard-btn" data-name="${this._escapeHtml(s.name)}" data-url="${this._escapeHtml(s.url)}">
-        <span class="sb-name">${this._escapeHtml(s.name)}</span>
-        ${hotkeyHtml}
-      </button>`;
-    }).join('');
+    const html = sounds.length === 0
+      ? `<p class="muted-text" style="grid-column:1/-1">${filter ? 'No matching sounds' : 'No sounds available'}</p>`
+      : sounds.map(s => {
+          const hk = hotkeyMap[s.name];
+          const hotkeyHtml = hk
+            ? `<span class="sb-hotkey-row">
+                 <span class="sb-hotkey">${this._escapeHtml(hk)}</span>
+                 <span class="sb-hotkey-clear" data-sound="${this._escapeHtml(s.name)}" title="Remove hotkey">&times;</span>
+               </span>`
+            : `<span class="sb-hotkey-set" data-sound="${this._escapeHtml(s.name)}">Set hotkey</span>`;
+          return `<button class="soundboard-btn" data-name="${this._escapeHtml(s.name)}" data-url="${this._escapeHtml(s.url)}">
+            <span class="sb-name">${this._escapeHtml(s.name)}</span>
+            ${hotkeyHtml}
+          </button>`;
+        }).join('');
 
-    // Click the main button area to play
-    grid.querySelectorAll('.soundboard-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        // Don't play if clicking hotkey controls
-        if (e.target.closest('.sb-hotkey-clear') || e.target.closest('.sb-hotkey-set')) return;
-        this._playSoundFile(btn.dataset.url);
+    grids.forEach(grid => {
+      grid.innerHTML = html;
+      if (sounds.length === 0) return;
+
+      // Click the main button area to play
+      grid.querySelectorAll('.soundboard-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          if (e.target.closest('.sb-hotkey-clear') || e.target.closest('.sb-hotkey-set')) return;
+          this._playSoundFile(btn.dataset.url);
+        });
       });
-    });
 
-    // "Set hotkey" link
-    grid.querySelectorAll('.sb-hotkey-set').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const name = el.dataset.sound;
-        this._recordingHotkeyFor = name;
-        const btn = el.closest('.soundboard-btn');
-        if (btn) btn.classList.add('hotkey-recording');
-        this._showToast(`Press a key combo for "${name}" (Esc to cancel)`, 'info');
+      // "Set hotkey" link
+      grid.querySelectorAll('.sb-hotkey-set').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const name = el.dataset.sound;
+          this._recordingHotkeyFor = name;
+          const btn = el.closest('.soundboard-btn');
+          if (btn) btn.classList.add('hotkey-recording');
+          this._showToast(`Press a key combo for "${name}" (Esc to cancel)`, 'info');
+        });
       });
-    });
 
-    // "×" remove hotkey button
-    grid.querySelectorAll('.sb-hotkey-clear').forEach(el => {
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const name = el.dataset.sound;
-        const hk = hotkeyMap[name];
-        if (hk) {
-          delete this._soundHotkeys[hk];
-          localStorage.setItem('haven_sound_hotkeys', JSON.stringify(this._soundHotkeys));
-          this._showToast(`Hotkey removed for "${name}"`, 'info');
-          this._renderSoundboard(document.getElementById('soundboard-search')?.value?.trim() || '');
-        }
+      // "×" remove hotkey button
+      grid.querySelectorAll('.sb-hotkey-clear').forEach(el => {
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const name = el.dataset.sound;
+          const hk = hotkeyMap[name];
+          if (hk) {
+            delete this._soundHotkeys[hk];
+            localStorage.setItem('haven_sound_hotkeys', JSON.stringify(this._soundHotkeys));
+            this._showToast(`Hotkey removed for "${name}"`, 'info');
+            this._renderSoundboard(
+              this._soundboardPip
+                ? (document.getElementById('sb-pip-search')?.value?.trim() || '')
+                : (document.getElementById('soundboard-search')?.value?.trim() || '')
+            );
+          }
+        });
       });
-    });
 
-    // Right-click also starts hotkey recording (as a secondary method)
-    grid.querySelectorAll('.soundboard-btn').forEach(btn => {
-      btn.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        if (e.target.closest('.sb-hotkey-clear')) return; // let × handle it
-        const name = btn.dataset.name;
-        this._recordingHotkeyFor = name;
-        btn.classList.add('hotkey-recording');
-        this._showToast(`Press a key combo for "${name}" (Esc to cancel)`, 'info');
+      // Right-click also starts hotkey recording
+      grid.querySelectorAll('.soundboard-btn').forEach(btn => {
+        btn.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          if (e.target.closest('.sb-hotkey-clear')) return;
+          const name = btn.dataset.name;
+          this._recordingHotkeyFor = name;
+          btn.classList.add('hotkey-recording');
+          this._showToast(`Press a key combo for "${name}" (Esc to cancel)`, 'info');
+        });
       });
     });
   }

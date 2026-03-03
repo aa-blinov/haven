@@ -1179,15 +1179,16 @@ app.get('/api/link-preview', previewLimiter, async (req, res) => {
     let data = null;
 
     // ── Site-specific oEmbed handlers ────────────────────
-    // Twitter / X — their HTML requires JS rendering, but the publish
-    // oEmbed API returns structured data directly.
-    const twitterMatch = url.match(/^https?:\/\/(?:(?:www\.|mobile\.)?(?:twitter|x)\.com|(?:fixupx|fxtwitter|vxtwitter)\.com)\/\w+\/status\/\d+/i);
+    // Native twitter.com / x.com — their HTML requires JS rendering so the generic
+    // scraper gets blank OG tags. The oEmbed API returns structured data directly.
+    // NOTE: fxtwitter / vxtwitter / fixupx are proxy sites that deliberately serve
+    // their own OG-enriched HTML — they must NOT be routed here; they fall through
+    // to the generic OG scraper below which picks up their tags directly.
+    const twitterMatch = url.match(/^https?:\/\/(?:(?:www\.|mobile\.)?(?:twitter|x)\.com)\/\w+\/status\/\d+/i);
     if (twitterMatch) {
       try {
-        // Normalize proxy URLs to twitter.com — the oEmbed endpoint only accepts native URLs
-        const twitterOembedUrl = url.replace(/^https?:\/\/(?:fixupx|fxtwitter|vxtwitter)\.com\//i, 'https://twitter.com/');
         const oembed = await fetch(
-          `https://publish.twitter.com/oembed?url=${encodeURIComponent(twitterOembedUrl)}&omit_script=true`,
+          `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true`,
           { signal: AbortSignal.timeout(6000), headers: { 'User-Agent': PREVIEW_UA } }
         );
         if (oembed.ok) {
