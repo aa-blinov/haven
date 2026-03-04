@@ -398,6 +398,15 @@ class HavenApp {
         localStorage.removeItem('haven_token');
         localStorage.removeItem('haven_user');
         window.location.href = '/';
+      } else if (data && data.reason === 'totp_enabled') {
+        // If WE just enabled TOTP, skip the kick — we already have the fresh token
+        if (this._justEnabledTotp) {
+          this._justEnabledTotp = false;
+          return;
+        }
+        localStorage.removeItem('haven_token');
+        localStorage.removeItem('haven_user');
+        window.location.href = '/';
       }
     });
 
@@ -2346,7 +2355,13 @@ class HavenApp {
       this._cancelAdminSettings();
     });
     document.getElementById('settings-modal').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) this._cancelAdminSettings();
+      if (e.target !== e.currentTarget) return;
+      // Don't close while TOTP setup flow is active — user could lose progress
+      const setupArea  = document.getElementById('totp-setup-area');
+      const backupArea = document.getElementById('totp-backup-area');
+      if ((setupArea  && setupArea.style.display  !== 'none') ||
+          (backupArea && backupArea.style.display !== 'none')) return;
+      this._cancelAdminSettings();
     });
     document.getElementById('admin-save-btn')?.addEventListener('click', () => {
       this._saveAdminSettings();
@@ -2505,9 +2520,24 @@ class HavenApp {
     // Copy secret button
     document.getElementById('totp-copy-secret')?.addEventListener('click', () => {
       const secret = document.getElementById('totp-secret-text')?.textContent;
-      if (secret) navigator.clipboard.writeText(secret).then(() => {
-        document.getElementById('totp-copy-secret').textContent = '✅';
-        setTimeout(() => { document.getElementById('totp-copy-secret').textContent = '📋 Copy'; }, 1500);
+      if (!secret) return;
+      const copyBtn = document.getElementById('totp-copy-secret');
+      const markCopied = () => {
+        copyBtn.textContent = '✅';
+        setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 1500);
+      };
+      navigator.clipboard.writeText(secret).then(markCopied).catch(() => {
+        // Fallback for Electron / contexts where Clipboard API is restricted
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = secret;
+          ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          markCopied();
+        } catch { /* could not copy */ }
       });
     });
 
@@ -2535,6 +2565,13 @@ class HavenApp {
           if (totpSetupStatus) { totpSetupStatus.textContent = data.error || 'Verification failed'; totpSetupStatus.classList.add('error'); }
           return;
         }
+        // Store fresh token — server bumped password_version to invalidate other sessions
+        if (data.token) {
+          this._justEnabledTotp = true;
+          this.token = data.token;
+          localStorage.setItem('haven_token', data.token);
+          if (this.socket) this.socket.auth.token = data.token;
+        }
         // Show backup codes
         totpSetupArea.style.display = 'none';
         totpBackupArea.style.display = 'block';
@@ -2550,10 +2587,23 @@ class HavenApp {
       const codesEl = document.getElementById('totp-backup-codes');
       if (!codesEl) return;
       const codes = Array.from(codesEl.querySelectorAll('div')).map(d => d.textContent).join('\n');
-      navigator.clipboard.writeText(codes).then(() => {
-        const btn = document.getElementById('totp-copy-backup-btn');
+      const btn = document.getElementById('totp-copy-backup-btn');
+      const markCopied = () => {
         btn.textContent = '✅ Copied!';
         setTimeout(() => { btn.textContent = '📋 Copy Backup Codes'; }, 2000);
+      };
+      navigator.clipboard.writeText(codes).then(markCopied).catch(() => {
+        // Fallback for Electron / contexts where Clipboard API is restricted
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = codes;
+          ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          markCopied();
+        } catch { /* could not copy */ }
       });
     });
 

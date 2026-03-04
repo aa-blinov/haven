@@ -413,8 +413,9 @@ router.post('/totp/verify-setup', async (req, res) => {
       return res.status(401).json({ error: 'Invalid code. Make sure your authenticator app is synced and try again.' });
     }
 
-    // Enable TOTP
-    db.prepare('UPDATE users SET totp_enabled = 1 WHERE id = ?').run(user.id);
+    // Enable TOTP and bump password_version to invalidate all existing sessions
+    const newPwv = (user.password_version || 1) + 1;
+    db.prepare('UPDATE users SET totp_enabled = 1, password_version = ? WHERE id = ?').run(newPwv, user.id);
 
     // Generate backup codes
     const backupCodes = generateBackupCodes(8);
@@ -426,7 +427,28 @@ router.post('/totp/verify-setup', async (req, res) => {
       insertCode.run(user.id, hash);
     }
 
-    res.json({ success: true, backupCodes });
+    // Issue a fresh token for the current session (carries new pwv so it stays valid)
+    const freshToken = jwt.sign(
+      { id: user.id, username: user.username, isAdmin: !!user.is_admin, displayName: user.display_name || user.username, pwv: newPwv },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Send the response first so the client can store the fresh token
+    res.json({ success: true, backupCodes, token: freshToken });
+
+    // After a short delay, disconnect all other sockets for this user (force-logout other devices)
+    const io = req.app.get('io');
+    if (io) {
+      setTimeout(() => {
+        for (const [, s] of io.sockets.sockets) {
+          if (s.user && s.user.id === user.id) {
+            s.emit('force-logout', { reason: 'totp_enabled' });
+            s.disconnect(true);
+          }
+        }
+      }, 500);
+    }
   } catch (err) {
     console.error('TOTP verify-setup error:', err);
     res.status(500).json({ error: 'Server error' });
