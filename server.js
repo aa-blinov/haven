@@ -1098,6 +1098,20 @@ app.get('/api/gif/trending', gifLimiter, (req, res) => {
 const linkPreviewCache = new Map(); // url → { data, ts }
 const PREVIEW_CACHE_TTL = 30 * 60 * 1000; // 30 min
 const PREVIEW_MAX_SIZE = 256 * 1024; // only read first 256 KB of page
+
+// Decode common HTML entities in OG-scraped attribute values.
+// Without this, image URLs containing '&amp;' get double-encoded on the client.
+function decodeHtmlEntities(str) {
+  if (!str) return str;
+  return str
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&amp;/gi, '&');
+}
 const dns = require('dns');
 const { promisify } = require('util');
 const dnsResolve = promisify(dns.resolve4);
@@ -1218,6 +1232,86 @@ app.get('/api/link-preview', previewLimiter, async (req, res) => {
       } catch { /* fall through to generic scrape */ }
     }
 
+    // ── fxtwitter / vxtwitter / fixupx fallback for native Twitter/X links ──
+    // If the oEmbed handler above didn't fire (non-matching URL) or failed,
+    // and the URL is a native twitter.com/x.com link, try fxtwitter as an
+    // OG-enriched proxy. fxtwitter serves bot-friendly HTML with OG tags.
+    if (!data && /^https?:\/\/(?:(?:www\.|mobile\.)?(?:twitter|x)\.com)\/\w+\/status\/\d+/i.test(url)) {
+      try {
+        const fxUrl = url.replace(/^https?:\/\/(?:www\.|mobile\.)?(?:twitter|x)\.com/i, 'https://fxtwitter.com');
+        const fxResp = await fetch(fxUrl, {
+          signal: AbortSignal.timeout(6000),
+          headers: { 'User-Agent': PREVIEW_UA, 'Accept': 'text/html' },
+          redirect: 'manual'
+        });
+        if (fxResp.ok) {
+          const fxHtml = (await fxResp.text()).slice(0, PREVIEW_MAX_SIZE);
+          const fxMeta = (prop) => {
+            const r1 = new RegExp(`<meta[^>]*?(?:property|name)=["']${prop}["'][^>]*?content=["']([^"']+)["']`, 'is');
+            const r2 = new RegExp(`<meta[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${prop}["']`, 'is');
+            const m = fxHtml.match(r1) || fxHtml.match(r2);
+            return m ? decodeHtmlEntities(m[1].trim()) : null;
+          };
+          const fxTitle = fxMeta('og:title') || fxMeta('twitter:title');
+          const fxDesc = fxMeta('og:description') || fxMeta('twitter:description');
+          const fxImg = fxMeta('og:image') || fxMeta('twitter:image');
+          if (fxTitle || fxDesc) {
+            data = {
+              title: fxTitle,
+              description: fxDesc,
+              image: fxImg,
+              siteName: fxMeta('og:site_name') || 'X',
+              url
+            };
+          }
+        }
+      } catch { /* fxtwitter fallback failed — continue to generic scrape */ }
+    }
+
+    // ── Reddit — serves no OG tags to unknown bots; use JSON API instead ──
+    if (!data && /^https?:\/\/(?:(?:www|old|new)\.)?reddit\.com\/r\/[\w]+\/comments\/[\w]+/i.test(url)) {
+      try {
+        // Reddit's .json endpoint works with any User-Agent
+        const jsonUrl = url.replace(/\/?(?:\?.*)?$/, '/.json');
+        const rResp = await fetch(jsonUrl, {
+          signal: AbortSignal.timeout(6000),
+          headers: { 'User-Agent': PREVIEW_UA }
+        });
+        if (rResp.ok) {
+          const rJson = await rResp.json();
+          const post = rJson?.[0]?.data?.children?.[0]?.data;
+          if (post) {
+            const redTitle = `${post.subreddit_name_prefixed || 'Reddit'}: ${post.title || ''}`;
+            let redImage = null;
+            let redImages;
+
+            if (post.is_gallery && post.media_metadata) {
+              // Gallery post — collect up to 4 preview images
+              const imgs = Object.values(post.media_metadata)
+                .filter(m => m.status === 'valid' && m.s?.u)
+                .map(m => decodeHtmlEntities(m.s.u))
+                .slice(0, 4);
+              if (imgs.length >= 2) redImages = imgs;
+              redImage = imgs[0] || null;
+            } else if (post.preview?.images?.[0]?.source?.url) {
+              redImage = decodeHtmlEntities(post.preview.images[0].source.url);
+            } else if (post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' && post.thumbnail !== 'nsfw' && post.thumbnail !== 'spoiler') {
+              redImage = post.thumbnail;
+            }
+
+            data = {
+              title: redTitle,
+              description: post.selftext ? post.selftext.slice(0, 280) : null,
+              image: redImage,
+              images: redImages,
+              siteName: 'Reddit',
+              url
+            };
+          }
+        }
+      } catch { /* Reddit JSON fallback failed — continue to generic scrape */ }
+    }
+
     // ── Pixiv — blocks bots for HTML but provides an oEmbed API ────────
     if (!data && /^https?:\/\/(?:www\.)?pixiv\.net\/(?:en\/)?artworks\/\d+/i.test(url)) {
       try {
@@ -1285,22 +1379,24 @@ app.get('/api/link-preview', previewLimiter, async (req, res) => {
 
       // Regex helper — handles attributes spanning multiple lines and both
       // orderings: property before content, and content before property.
+      // Decodes HTML entities so image URLs with &amp; etc. work correctly.
       const getMetaContent = (property) => {
         const re1 = new RegExp(`<meta[^>]*?(?:property|name)=["']${property}["'][^>]*?content=["']([^"']+)["']`, 'is');
         const re2 = new RegExp(`<meta[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${property}["']`, 'is');
         const m = chunk.match(re1) || chunk.match(re2);
-        return m ? m[1].trim() : null;
+        return m ? decodeHtmlEntities(m[1].trim()) : null;
       };
 
       // Returns ALL values for a given OG property (e.g. multiple og:image tags
       // for tweet galleries or reddit image galleries). Deduped, max 4 results.
+      // Decodes HTML entities in each value.
       const getAllMetaContent = (property) => {
         const seen = new Set();
         const re1 = new RegExp(`<meta[^>]*?(?:property|name)=["']${property}["'][^>]*?content=["']([^"']+)["']`, 'gi');
         const re2 = new RegExp(`<meta[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["']${property}["']`, 'gi');
         let m;
-        while ((m = re1.exec(chunk)) !== null) seen.add(m[1].trim());
-        while ((m = re2.exec(chunk)) !== null) seen.add(m[1].trim());
+        while ((m = re1.exec(chunk)) !== null) seen.add(decodeHtmlEntities(m[1].trim()));
+        while ((m = re2.exec(chunk)) !== null) seen.add(decodeHtmlEntities(m[1].trim()));
         return [...seen].slice(0, 4);
       };
 
@@ -1343,11 +1439,15 @@ app.get('/api/link-preview', previewLimiter, async (req, res) => {
         }
       }
     } else {
-      // Twitter oEmbed succeeded — try a quick scrape for the image only
+      // Twitter oEmbed succeeded — try a quick scrape for the image only.
+      // First try fxtwitter (bot-friendly proxy), then fall back to the original URL.
+      const imageSource = /^https?:\/\/(?:(?:www\.|mobile\.)?(?:twitter|x)\.com)\/\w+\/status\/\d+/i.test(url)
+        ? url.replace(/^https?:\/\/(?:www\.|mobile\.)?(?:twitter|x)\.com/i, 'https://fxtwitter.com')
+        : url;
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
-        const resp = await fetch(url, {
+        const resp = await fetch(imageSource, {
           signal: controller.signal,
           headers: { 'User-Agent': PREVIEW_UA, 'Accept': 'text/html' },
           redirect: 'manual'  // no blind redirect following
@@ -1358,7 +1458,7 @@ app.get('/api/link-preview', previewLimiter, async (req, res) => {
           const html = (await resp.text()).slice(0, PREVIEW_MAX_SIZE);
           const imgMatch = html.match(/<meta[^>]*?(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*?content=["']([^"']+)["']/is)
                         || html.match(/<meta[^>]*?content=["']([^"']+)["'][^>]*?(?:property|name)=["'](?:og:image|twitter:image)["']/is);
-          if (imgMatch) data.image = imgMatch[1].trim();
+          if (imgMatch) data.image = decodeHtmlEntities(imgMatch[1].trim());
         }
       } catch { /* image is optional */ }
     }

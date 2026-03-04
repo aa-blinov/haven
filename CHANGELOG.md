@@ -11,6 +11,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/). Haven uses [Sema
 
 ---
 
+## [2.5.4] — 2026-03-03
+
+### Fixed
+- **Link preview HTML entity decoding** — image URLs containing `&amp;` or other HTML entities (common in Reddit and other sites) were being served with raw entities, causing broken images in previews. All OG-scraped values are now entity-decoded before being sent to the client.
+- **Reddit link previews** — Reddit doesn't serve OG tags to unknown bots, so previews showed no content for reddit.com links. The server now uses Reddit's JSON API (`.json` endpoint) to fetch rich post data directly, including title, subreddit, author, images, and gallery support (up to 4 images).
+- **Twitter/X link previews with images** — when the Twitter oEmbed API returned title and description but no image, the image fallback was scraping the original twitter.com URL which serves a JS-only page. The fallback now proxies through fxtwitter.com, which serves bot-friendly OG-enriched HTML. Additionally, native twitter.com/x.com links where oEmbed fails now also try fxtwitter as a full preview source.
+
+---
+
 ## [2.5.3] — 2026-03-03
 
 ### Added
