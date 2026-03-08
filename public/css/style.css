@@ -1822,12 +1822,20 @@ input[type="range"]:not(.rgb-slider)::-moz-range-track {
    CSS custom-property updates fire 20×/s which would restart every
    transition that references a variable.  Using the universal selector
    guarantees that NEW elements (modals, voice-user lists, expand buttons,
-   etc.) are automatically covered without maintaining a selector list. */
+   etc.) are automatically covered without maintaining a selector list.
+
+   CRITICAL: use `transition: none` not `transition-duration: 0s`.
+   `transition-duration: 0s` still causes Chromium to evaluate every
+   element's transition-property on each var change and create zero-
+   duration transition records in Blink's Oilpan heap (invisible to
+   performance.memory which only measures V8 heap).  These accumulate
+   over ~5 minutes and cause progressive FPS collapse.  `transition: none`
+   sets transition-property:none which skips the entire pipeline. */
 html.rgb-cycling *,
 html.rgb-cycling *::before,
 html.rgb-cycling *::after {
-  transition-duration: 0s !important;
-  animation-play-state: paused !important;
+  transition: none !important;
+  animation: none !important;
 }
 
 

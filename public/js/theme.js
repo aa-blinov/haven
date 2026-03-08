@@ -63,18 +63,19 @@ function generateCustomPalette(h, s, v, vibrancy) {
 }
 
 // ── Apply / clear custom theme CSS variables ────────────
-// Uses a dedicated <style> element so all 25 variables are written in a
-// single textContent swap — one style recalculation instead of 25
-// individual setProperty calls that each dirty the computed-style cache.
-let _themeStyleEl = null;
+// Sets each CSS custom property directly on :root's inline style.
+// Multiple setProperty calls in one script execution are batched by
+// Chromium into a single style-invalidation pass — no intermediate
+// recalculations.  This avoids the CSSOM node creation/destruction
+// that happens when writing a <style> element's textContent 20×/s,
+// which was causing progressive Blink Oilpan GC pressure.
+let _themeStyleEl = null;   // kept for clearCustomVars cleanup safety
 function applyCustomVars(palette) {
-  if (!_themeStyleEl) {
-    _themeStyleEl = document.createElement('style');
-    _themeStyleEl.id = '_haven_theme_vars';
-    document.head.appendChild(_themeStyleEl);
-  }
-  const rules = Object.entries(palette).map(([k, v]) => `${k}:${v}`).join(';');
-  _themeStyleEl.textContent = `:root{${rules}}`;
+  // Direct inline-style setProperty on :root.  All 23 vars are set in
+  // one synchronous loop; Chromium defers the style recalculation to
+  // the next frame, treating them as a single batched invalidation.
+  const root = document.documentElement.style;
+  for (const [k, v] of Object.entries(palette)) root.setProperty(k, v);
 }
 function clearCustomVars() {
   if (_themeStyleEl) { _themeStyleEl.textContent = ''; }
@@ -111,25 +112,11 @@ function startRgbCycle() {
 
   // Use rAF instead of setInterval to sync with the browser paint cycle
   // and automatically pause when the tab/window is hidden.
-  // Adaptive DOM-size throttle: check DOM node count periodically and skip
-  // style updates when the DOM is too large to process within one frame.
-  // A 5215-node DOM at 20 ticks/sec = ~104k style recalcs/sec — over budget.
-  // A 4000-node DOM at 10 ticks/sec = ~40k — back in budget.
-  // We sample DOM size every 20 ticks (~1 s) to avoid querySelectorAll overhead.
-  let _domTickCount = 0;
-  let _domSize = 0;
   function tick(now) {
     _rgbRAF = requestAnimationFrame(tick);
     if (now - _rgbLastTick < TICK_MS) return;
     _rgbLastTick = now;
     if (document.hidden) return;   // don't burn CPU when not visible
-    // Sample DOM size every 20 ticks (~1 s) — querySelectorAll is itself costly
-    _domTickCount++;
-    if (_domTickCount % 20 === 1) {
-      _domSize = document.querySelectorAll('*').length;
-    }
-    // Skip every other tick when DOM is large (halves the style-recalc rate)
-    if (_domSize > 4000 && _domTickCount % 2 !== 0) return;
     _rgbHue = (_rgbHue + getStep()) % 360;
     const vib = vibrancy / 100;
     const palette = generateCustomPalette(_rgbHue, 0.75, 0.95, vib);
