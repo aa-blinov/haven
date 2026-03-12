@@ -16,6 +16,10 @@ function utcStamp(s) {
   return s.replace(' ', 'T') + 'Z';
 }
 
+function logStamp() {
+  return new Date().toISOString();
+}
+
 // ── Input validation helpers ────────────────────────────
 function isString(v, min = 0, max = Infinity) {
   return typeof v === 'string' && v.length >= min && v.length <= max;
@@ -650,12 +654,94 @@ function setupSocketHandlers(io, db) {
       return;
     }
 
-    console.log(`✅ ${socket.user.username} connected`);
+    console.log(`[${logStamp()}] [CONNECTED] ${socket.user.username} connected`);
     socket.currentChannel = null;
     socket.hasFocus = true;
     socket.on('visibility-change', (data) => {
       if (data && typeof data.visible === 'boolean') socket.hasFocus = data.visible;
     });
+
+    function getClientIp(targetSocket) {
+      if (!targetSocket) return null;
+      const forwardedFor = targetSocket.handshake?.headers?.['x-forwarded-for'];
+      if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+        return forwardedFor.split(',')[0].trim();
+      }
+      return targetSocket.handshake?.address || targetSocket.conn?.remoteAddress || null;
+    }
+
+    function getUserLogIdentity(userId) {
+      if (!isInt(userId)) return null;
+      try {
+        return db.prepare(
+          'SELECT username, COALESCE(display_name, username) AS displayName FROM users WHERE id = ?'
+        ).get(userId) || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function getVoiceChannelInfo(code) {
+      if (!isString(code, 8, 8)) return null;
+      return db.prepare(
+        'SELECT id, name, channel_type, voice_user_limit FROM channels WHERE code = ?'
+      ).get(code) || null;
+    }
+
+    function getVoiceRoster(code) {
+      const room = voiceUsers.get(code);
+      if (!room) return [];
+      return Array.from(room.values()).map((user) => ({
+        id: user.id,
+        displayName: user.username,
+        socketId: user.socketId
+      }));
+    }
+
+    function logVoiceEvent(event, details = {}) {
+      const targetSocket = details.socket === undefined ? socket : details.socket;
+      const code = details.code || null;
+      const fallbackIdentity = details.userId && (!details.login || !details.displayName)
+        ? getUserLogIdentity(details.userId)
+        : null;
+      const channel = details.channel === undefined
+        ? (code ? getVoiceChannelInfo(code) : null)
+        : details.channel;
+      const room = code ? voiceUsers.get(code) : null;
+      const payload = {
+        event,
+        source: details.source || null,
+        reason: details.reason || null,
+        userId: details.userId ?? targetSocket?.user?.id ?? null,
+        login: details.login ?? targetSocket?.user?.username ?? fallbackIdentity?.username ?? null,
+        displayName: details.displayName
+          ?? targetSocket?.user?.displayName
+          ?? fallbackIdentity?.displayName
+          ?? targetSocket?.user?.username
+          ?? null,
+        socketId: details.socketId ?? targetSocket?.id ?? null,
+        ip: details.ip ?? getClientIp(targetSocket),
+        transport: details.transport ?? targetSocket?.conn?.transport?.name ?? null,
+        sessionId: details.sessionId || null,
+        channelId: details.channelId ?? channel?.id ?? null,
+        channelName: details.channelName ?? channel?.name ?? null,
+        channelCode: code,
+        textChannelCode: details.textChannelCode ?? targetSocket?.currentChannel ?? null,
+        voiceCountBefore: details.beforeCount ?? null,
+        voiceCountAfter: details.afterCount ?? (room ? room.size : 0),
+        participants: details.participants ?? (code ? getVoiceRoster(code) : []),
+        actorUserId: details.actorUserId ?? null,
+        actorLogin: details.actorLogin ?? null,
+        actorDisplayName: details.actorDisplayName ?? null,
+        actorSocketId: details.actorSocketId ?? null
+      };
+
+      for (const [key, value] of Object.entries(payload)) {
+        if (value === null || value === undefined || value === '') delete payload[key];
+      }
+
+      console.log(`[${logStamp()}] [Voice] ${JSON.stringify(payload)}`);
+    }
 
     // Push authoritative user info to the client on every connect/reconnect
     // so stale localStorage is always corrected
@@ -852,8 +938,19 @@ function setupSocketHandlers(io, db) {
       for (const [userId, entry] of room) {
         const sock = io.sockets.sockets.get(entry.socketId);
         if (!sock || !sock.connected) {
+          const beforeCount = room.size;
           room.delete(userId);
-          console.log(`[Voice] Pruned stale voice entry for user ${userId} (socket ${entry.socketId} gone)`);
+          logVoiceEvent('prune-stale', {
+            socket: sock || null,
+            code,
+            source: 'pruneStaleVoiceUsers',
+            reason: sock ? 'socket-disconnected' : 'socket-missing',
+            userId,
+            displayName: entry.username,
+            socketId: entry.socketId,
+            beforeCount,
+            afterCount: room.size
+          });
         }
       }
       if (room.size === 0) voiceUsers.delete(code);
@@ -1527,33 +1624,70 @@ function setupSocketHandlers(io, db) {
       if (!sessionId || sessionId.length > 128) return;
 
       // Verify channel membership before allowing voice
-      const vch = db.prepare('SELECT id FROM channels WHERE code = ?').get(code);
-      if (!vch) return;
+      const vch = getVoiceChannelInfo(code);
+      if (!vch) {
+        logVoiceEvent('join-denied', {
+          code,
+          source: 'voice-join',
+          reason: 'channel-not-found',
+          sessionId
+        });
+        return;
+      }
       const vMember = db.prepare(
         'SELECT 1 FROM channel_members WHERE channel_id = ? AND user_id = ?'
       ).get(vch.id, socket.user.id);
-      if (!vMember) return socket.emit('error-msg', 'Not a member of this channel');
+      if (!vMember) {
+        logVoiceEvent('join-denied', {
+          code,
+          channel: vch,
+          source: 'voice-join',
+          reason: 'not-a-member',
+          sessionId
+        });
+        return socket.emit('error-msg', 'Not a member of this channel');
+      }
 
       // Check channel type and voice user limit
-      const vchSettings = db.prepare('SELECT channel_type, voice_user_limit FROM channels WHERE code = ?').get(code);
-      if (vchSettings && vchSettings.channel_type === 'text') {
+      if (vch.channel_type === 'text') {
+        logVoiceEvent('join-denied', {
+          code,
+          channel: vch,
+          source: 'voice-join',
+          reason: 'text-only-channel',
+          sessionId
+        });
         return socket.emit('error-msg', 'This is a text-only channel — voice is disabled');
       }
-      if (vchSettings && vchSettings.voice_user_limit > 0) {
+      if (vch.voice_user_limit > 0) {
         const currentCount = voiceUsers.has(code) ? voiceUsers.get(code).size : 0;
-        if (currentCount >= vchSettings.voice_user_limit) {
-          return socket.emit('error-msg', `Voice is full (${currentCount}/${vchSettings.voice_user_limit})`);
+        if (currentCount >= vch.voice_user_limit) {
+          logVoiceEvent('join-denied', {
+            code,
+            channel: vch,
+            source: 'voice-join',
+            reason: `voice-full:${currentCount}/${vch.voice_user_limit}`,
+            sessionId,
+            beforeCount: currentCount,
+            afterCount: currentCount
+          });
+          return socket.emit('error-msg', `Voice is full (${currentCount}/${vch.voice_user_limit})`);
         }
       }
 
       // Leave any previous voice room first
       for (const [prevCode, room] of voiceUsers) {
         if (room.has(socket.user.id) && prevCode !== code) {
-          handleVoiceLeave(socket, prevCode);
+          handleVoiceLeave(socket, prevCode, {
+            source: 'voice-join',
+            reason: `switch-channel:${code}`,
+            sessionId
+          });
         }
       }
 
       if (!voiceUsers.has(code)) voiceUsers.set(code, new Map());
+      const beforeCount = voiceUsers.get(code).size;
 
       // Join dedicated voice socket.io room (independent of text channel room)
       socket.join(`voice:${code}`);
@@ -1567,6 +1701,15 @@ function setupSocketHandlers(io, db) {
         username: socket.user.displayName,
         socketId: socket.id,
         sessionId
+      });
+
+      logVoiceEvent('join', {
+        code,
+        channel: vch,
+        source: 'voice-join',
+        sessionId,
+        beforeCount,
+        afterCount: voiceUsers.get(code).size
       });
 
       // Tell new user about existing peers (they'll create offers)
@@ -1699,7 +1842,12 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-leave', (data, callback) => {
       if (!data || typeof data !== 'object') return;
       if (!isString(data.code, 8, 8)) return;
-      handleVoiceLeave(socket, data.code);
+      const sessionId = typeof data.sessionId === 'string' ? data.sessionId.trim() : '';
+      handleVoiceLeave(socket, data.code, {
+        source: 'voice-leave',
+        reason: 'client-request',
+        sessionId
+      });
       // Acknowledge so the client knows the server processed the leave
       if (typeof callback === 'function') callback({ ok: true });
     });
@@ -1719,7 +1867,7 @@ function setupSocketHandlers(io, db) {
       if (!target) return socket.emit('error-msg', 'User is not in voice');
 
       // Permission check: must have kick_user permission
-      const kickCh = db.prepare('SELECT id FROM channels WHERE code = ?').get(data.code);
+      const kickCh = getVoiceChannelInfo(data.code);
       const channelId = kickCh ? kickCh.id : null;
       if (!socket.user.isAdmin && !userHasPermission(socket.user.id, 'kick_user', channelId)) {
         return socket.emit('error-msg', 'You don\'t have permission to kick users from voice');
@@ -1733,6 +1881,7 @@ function setupSocketHandlers(io, db) {
       }
 
       // Force the target out of the voice room
+      const beforeCount = voiceRoom.size;
       voiceRoom.delete(data.userId);
       const targetSocket = io.sockets.sockets.get(target.socketId);
       if (targetSocket) {
@@ -1756,6 +1905,24 @@ function setupSocketHandlers(io, db) {
           if (viewers.size === 0) streamViewers.delete(key);
         }
       }
+
+      logVoiceEvent('leave', {
+        socket: targetSocket || null,
+        code: data.code,
+        channel: kickCh,
+        source: 'voice-kick',
+        reason: 'kicked',
+        userId: data.userId,
+        displayName: target.username,
+        socketId: target.socketId,
+        textChannelCode: targetSocket?.currentChannel ?? null,
+        beforeCount,
+        afterCount: voiceRoom.size,
+        actorUserId: socket.user.id,
+        actorLogin: socket.user.username,
+        actorDisplayName: socket.user.displayName,
+        actorSocketId: socket.id
+      });
 
       // Notify the kicked user
       io.to(target.socketId).emit('voice-kicked', {
@@ -2347,21 +2514,43 @@ function setupSocketHandlers(io, db) {
       if (!sessionId || sessionId.length > 128) return;
 
       // Verify channel membership
-      const vch = db.prepare('SELECT id FROM channels WHERE code = ?').get(code);
-      if (!vch) return;
+      const vch = getVoiceChannelInfo(code);
+      if (!vch) {
+        logVoiceEvent('rejoin-denied', {
+          code,
+          source: 'voice-rejoin',
+          reason: 'channel-not-found',
+          sessionId
+        });
+        return;
+      }
       const vMember = db.prepare(
         'SELECT 1 FROM channel_members WHERE channel_id = ? AND user_id = ?'
       ).get(vch.id, socket.user.id);
-      if (!vMember) return;
+      if (!vMember) {
+        logVoiceEvent('rejoin-denied', {
+          code,
+          channel: vch,
+          source: 'voice-rejoin',
+          reason: 'not-a-member',
+          sessionId
+        });
+        return;
+      }
 
       // Leave any other voice rooms first
       for (const [prevCode, room] of voiceUsers) {
         if (room.has(socket.user.id) && prevCode !== code) {
-          handleVoiceLeave(socket, prevCode);
+          handleVoiceLeave(socket, prevCode, {
+            source: 'voice-rejoin',
+            reason: `switch-channel:${code}`,
+            sessionId
+          });
         }
       }
 
       if (!voiceUsers.has(code)) voiceUsers.set(code, new Map());
+      const beforeCount = voiceUsers.get(code).size;
 
       // Re-join the voice socket.io room
       socket.join(`voice:${code}`);
@@ -2372,6 +2561,16 @@ function setupSocketHandlers(io, db) {
         username: socket.user.displayName,
         socketId: socket.id,
         sessionId
+      });
+
+      logVoiceEvent('rejoin', {
+        code,
+        channel: vch,
+        source: 'voice-rejoin',
+        reason: 'socket-reconnect',
+        sessionId,
+        beforeCount,
+        afterCount: voiceUsers.get(code).size
       });
 
       // Tell existing peers about the re-joined user so they can re-establish WebRTC
@@ -4468,9 +4667,9 @@ function setupSocketHandlers(io, db) {
 
     // ═══════════════ DISCONNECT ═════════════════════════════
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (reason) => {
       if (!socket.user) return; // safety guard
-      console.log(`❌ ${socket.user.username} disconnected`);
+      console.log(`[${logStamp()}] [DISCONNECTED] ${socket.user.username} disconnected`);
 
       // Collect channels this user was actually in before removing
       const affectedChannels = new Set();
@@ -4502,16 +4701,22 @@ function setupSocketHandlers(io, db) {
       for (const [code, room] of voiceUsers) {
         const voiceEntry = room.get(socket.user.id);
         if (voiceEntry && voiceEntry.socketId === socket.id) {
-          handleVoiceLeave(socket, code);
+          handleVoiceLeave(socket, code, {
+            source: 'socket-disconnect',
+            reason: reason || 'socket-disconnect'
+          });
         }
       }
     });
 
     // ── Helpers ─────────────────────────────────────────────
 
-    function handleVoiceLeave(socket, code) {
+    function handleVoiceLeave(socket, code, details = {}) {
       const voiceRoom = voiceUsers.get(code);
       if (!voiceRoom || !voiceRoom.has(socket.user.id)) return;
+      const voiceEntry = voiceRoom.get(socket.user.id);
+      const beforeCount = voiceRoom.size;
+      const channel = details.channel === undefined ? getVoiceChannelInfo(code) : details.channel;
 
       voiceRoom.delete(socket.user.id);
       socket.leave(`voice:${code}`);
@@ -4533,6 +4738,21 @@ function setupSocketHandlers(io, db) {
           if (viewers.size === 0) streamViewers.delete(key);
         }
       }
+
+      logVoiceEvent('leave', {
+        socket,
+        code,
+        channel,
+        source: details.source || 'voice-leave',
+        reason: details.reason || 'left-voice',
+        sessionId: details.sessionId || null,
+        userId: socket.user.id,
+        login: socket.user.username,
+        displayName: voiceEntry?.username || socket.user.displayName || socket.user.username,
+        socketId: voiceEntry?.socketId || socket.id,
+        beforeCount,
+        afterCount: voiceRoom.size
+      });
 
       // Tell remaining peers to close connection to this user
       for (const [, user] of voiceRoom) {

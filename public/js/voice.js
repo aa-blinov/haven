@@ -292,6 +292,11 @@ class VoiceManager {
 
   // ── Public API ──────────────────────────────────────────
 
+  _createVoiceSessionId() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    return `voice-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   async join(channelCode) {
     try {
       // Leave existing voice channel if connected elsewhere
@@ -348,16 +353,17 @@ class VoiceManager {
       this._startNoiseGate();
 
       this.currentChannel = channelCode;
-      this.voiceSessionId = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
-        ? globalThis.crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      this.voiceSessionId = this._createVoiceSessionId();
       this.inVoice = true;
       this.isMuted = false;
       
       // Persist voice channel for auto-rejoin after page refresh or server restart
       try { localStorage.setItem('haven_voice_channel', channelCode); } catch {}
 
-      this.socket.emit('voice-join', { code: channelCode, sessionId: this.voiceSessionId });
+      this.socket.emit('voice-join', {
+        code: channelCode,
+        sessionId: this.voiceSessionId
+      });
 
       // Start local talk indicator (use raw stream for accurate detection)
       this._startLocalTalkDetection();
@@ -386,18 +392,25 @@ class VoiceManager {
 
     // Capture channel code BEFORE clearing state
     const leavingChannel = this.currentChannel;
+    const leavingSessionId = this.voiceSessionId;
 
     if (leavingChannel) {
       // Use Socket.IO acknowledgment to confirm server received the leave.
       // If no ack within 2s (socket glitch, transport switch), retry.
       let acked = false;
-      this.socket.emit('voice-leave', { code: leavingChannel }, (response) => {
+      this.socket.emit('voice-leave', {
+        code: leavingChannel,
+        sessionId: leavingSessionId
+      }, (response) => {
         acked = true;
       });
       setTimeout(() => {
         if (!acked && this.socket.connected) {
           console.warn('[Voice] voice-leave not acked, retrying...');
-          this.socket.emit('voice-leave', { code: leavingChannel });
+          this.socket.emit('voice-leave', {
+            code: leavingChannel,
+            sessionId: leavingSessionId
+          });
         }
       }, 2000);
     }
