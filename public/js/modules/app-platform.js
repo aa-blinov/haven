@@ -92,6 +92,19 @@ _initDesktopAppBanner() {
   // Don't show if already in the desktop app
   if (window.havenDesktop || navigator.userAgent.includes('Electron')) return;
 
+  const syncDesktopPromoDismissal = (checked) => {
+    const banner = document.getElementById('desktop-app-banner');
+    if (checked) {
+      localStorage.setItem('haven_desktop_promo_dismissed', '1');
+      localStorage.setItem('haven_desktop_banner_dismissed', '1');
+      if (banner) banner.style.display = 'none';
+    } else {
+      localStorage.removeItem('haven_desktop_promo_dismissed');
+      localStorage.removeItem('haven_desktop_banner_dismissed');
+      if (banner) banner.style.display = 'inline-flex';
+    }
+  };
+
   // ── Top-bar banner ──
   const bannerDismissed = localStorage.getItem('haven_desktop_banner_dismissed');
   if (!bannerDismissed) {
@@ -115,6 +128,11 @@ _initDesktopAppBanner() {
 
   const modal = document.getElementById('desktop-promo-modal');
   if (!modal) return;
+  const dismissCheck = document.getElementById('desktop-promo-dismiss-check');
+
+  dismissCheck?.addEventListener('change', () => {
+    syncDesktopPromoDismissal(!!dismissCheck.checked);
+  });
 
   // Detect platform for meta line
   const meta = document.getElementById('desktop-promo-meta');
@@ -134,14 +152,7 @@ _initDesktopAppBanner() {
   const laterBtn = document.getElementById('desktop-promo-later');
   if (laterBtn) {
     laterBtn.addEventListener('click', () => {
-      const check = document.getElementById('desktop-promo-dismiss-check');
-      if (check && check.checked) {
-        localStorage.setItem('haven_desktop_promo_dismissed', '1');
-        // Also dismiss the banner if they chose "don't show again"
-        localStorage.setItem('haven_desktop_banner_dismissed', '1');
-        const banner = document.getElementById('desktop-app-banner');
-        if (banner) banner.style.display = 'none';
-      }
+      if (dismissCheck) syncDesktopPromoDismissal(!!dismissCheck.checked);
       modal.style.display = 'none';
     });
   }
@@ -150,13 +161,7 @@ _initDesktopAppBanner() {
   const installBtn = document.getElementById('desktop-promo-install');
   if (installBtn) {
     installBtn.addEventListener('click', () => {
-      const check = document.getElementById('desktop-promo-dismiss-check');
-      if (check && check.checked) {
-        localStorage.setItem('haven_desktop_promo_dismissed', '1');
-        localStorage.setItem('haven_desktop_banner_dismissed', '1');
-        const banner = document.getElementById('desktop-app-banner');
-        if (banner) banner.style.display = 'none';
-      }
+      if (dismissCheck) syncDesktopPromoDismissal(!!dismissCheck.checked);
       modal.style.display = 'none';
     });
   }
@@ -164,6 +169,7 @@ _initDesktopAppBanner() {
   // Close on overlay click
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
+      if (dismissCheck) syncDesktopPromoDismissal(!!dismissCheck.checked);
       modal.style.display = 'none';
     }
   });
@@ -179,6 +185,20 @@ _initAndroidBetaBanner() {
     localStorage.removeItem('haven_android_beta_promo_dismissed');
     sessionStorage.setItem('_ab_v2_migrated', '1');
   }
+
+  const syncAndroidPromoDismissal = (checked) => {
+    const banner = document.getElementById('android-beta-banner');
+    if (checked) {
+      localStorage.setItem('haven_ab_promo_nodisplay', '1');
+      localStorage.setItem('haven_ab_banner_nodisplay', '1');
+      sessionStorage.removeItem('haven_ab_banner_session');
+      if (banner) banner.style.display = 'none';
+    } else {
+      localStorage.removeItem('haven_ab_promo_nodisplay');
+      localStorage.removeItem('haven_ab_banner_nodisplay');
+      if (banner) banner.style.display = 'inline-flex';
+    }
+  };
 
   // ── Top-bar banner ──
   // Only permanently hidden if user checked "Don't show this again";
@@ -211,6 +231,11 @@ _initAndroidBetaBanner() {
   // ── Promo popup (centred modal) ──
   const modal = document.getElementById('android-beta-modal');
   if (!modal) return;
+  const dismissCheck = document.getElementById('android-beta-dismiss-check');
+
+  dismissCheck?.addEventListener('change', () => {
+    syncAndroidPromoDismissal(!!dismissCheck.checked);
+  });
 
   // Show popup on first visit (unless dismissed)
   if (!localStorage.getItem('haven_ab_promo_nodisplay')) {
@@ -236,7 +261,7 @@ _initAndroidBetaBanner() {
   const submitBtn = document.getElementById('android-beta-submit');
   if (submitBtn) {
     submitBtn.addEventListener('click', () => {
-      localStorage.setItem('haven_ab_promo_nodisplay', '1');
+      syncAndroidPromoDismissal(true);
       modal.style.display = 'none';
     });
   }
@@ -245,20 +270,17 @@ _initAndroidBetaBanner() {
   const laterBtn = document.getElementById('android-beta-later');
   if (laterBtn) {
     laterBtn.addEventListener('click', () => {
-      const check = document.getElementById('android-beta-dismiss-check');
-      if (check && check.checked) {
-        localStorage.setItem('haven_ab_promo_nodisplay', '1');
-        localStorage.setItem('haven_ab_banner_nodisplay', '1');
-        const banner = document.getElementById('android-beta-banner');
-        if (banner) banner.style.display = 'none';
-      }
+      if (dismissCheck) syncAndroidPromoDismissal(!!dismissCheck.checked);
       modal.style.display = 'none';
     });
   }
 
   // Close on overlay click
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.style.display = 'none';
+    if (e.target === modal) {
+      if (dismissCheck) syncAndroidPromoDismissal(!!dismissCheck.checked);
+      modal.style.display = 'none';
+    }
   });
 },
 
