@@ -1522,7 +1522,9 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-join', (data) => {
       if (!data || typeof data !== 'object') return;
       const code = typeof data.code === 'string' ? data.code.trim() : '';
+      const sessionId = typeof data.sessionId === 'string' ? data.sessionId.trim() : '';
       if (!code || !/^[a-f0-9]{8}$/i.test(code)) return;
+      if (!sessionId || sessionId.length > 128) return;
 
       // Verify channel membership before allowing voice
       const vch = db.prepare('SELECT id FROM channels WHERE code = ?').get(code);
@@ -1563,20 +1565,21 @@ function setupSocketHandlers(io, db) {
       voiceUsers.get(code).set(socket.user.id, {
         id: socket.user.id,
         username: socket.user.displayName,
-        socketId: socket.id
+        socketId: socket.id,
+        sessionId
       });
 
       // Tell new user about existing peers (they'll create offers)
       socket.emit('voice-existing-users', {
         channelCode: code,
-        users: existingUsers.map(u => ({ id: u.id, username: u.username }))
+        users: existingUsers.map(u => ({ id: u.id, username: u.username, sessionId: u.sessionId || null }))
       });
 
       // Tell existing users about new peer (they'll expect offers)
       existingUsers.forEach(u => {
         io.to(u.socketId).emit('voice-user-joined', {
           channelCode: code,
-          user: { id: socket.user.id, username: socket.user.displayName }
+          user: { id: socket.user.id, username: socket.user.displayName, sessionId }
         });
       });
 
@@ -1651,12 +1654,12 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-offer', (data) => {
       if (!data || typeof data !== 'object') return;
       if (!isString(data.code, 8, 8) || !isInt(data.targetUserId) || !data.offer) return;
-      // Verify sender is in the voice room
-      if (!voiceUsers.get(data.code)?.has(socket.user.id)) return;
+      const sender = voiceUsers.get(data.code)?.get(socket.user.id);
+      if (!sender || sender.socketId !== socket.id) return;
       const target = voiceUsers.get(data.code)?.get(data.targetUserId);
-      if (target) {
+      if (target && (!data.targetSessionId || target.sessionId === data.targetSessionId)) {
         io.to(target.socketId).emit('voice-offer', {
-          from: { id: socket.user.id, username: socket.user.displayName },
+          from: { id: socket.user.id, username: socket.user.displayName, sessionId: sender.sessionId || null },
           offer: data.offer,
           channelCode: data.code
         });
@@ -1666,11 +1669,12 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-answer', (data) => {
       if (!data || typeof data !== 'object') return;
       if (!isString(data.code, 8, 8) || !isInt(data.targetUserId) || !data.answer) return;
-      if (!voiceUsers.get(data.code)?.has(socket.user.id)) return;
+      const sender = voiceUsers.get(data.code)?.get(socket.user.id);
+      if (!sender || sender.socketId !== socket.id) return;
       const target = voiceUsers.get(data.code)?.get(data.targetUserId);
-      if (target) {
+      if (target && (!data.targetSessionId || target.sessionId === data.targetSessionId)) {
         io.to(target.socketId).emit('voice-answer', {
-          from: { id: socket.user.id, username: socket.user.displayName },
+          from: { id: socket.user.id, username: socket.user.displayName, sessionId: sender.sessionId || null },
           answer: data.answer,
           channelCode: data.code
         });
@@ -1680,11 +1684,12 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-ice-candidate', (data) => {
       if (!data || typeof data !== 'object') return;
       if (!isString(data.code, 8, 8) || !isInt(data.targetUserId)) return;
-      if (!voiceUsers.get(data.code)?.has(socket.user.id)) return;
+      const sender = voiceUsers.get(data.code)?.get(socket.user.id);
+      if (!sender || sender.socketId !== socket.id) return;
       const target = voiceUsers.get(data.code)?.get(data.targetUserId);
-      if (target) {
+      if (target && (!data.targetSessionId || target.sessionId === data.targetSessionId)) {
         io.to(target.socketId).emit('voice-ice-candidate', {
-          from: { id: socket.user.id, username: socket.user.displayName },
+          from: { id: socket.user.id, username: socket.user.displayName, sessionId: sender.sessionId || null },
           candidate: data.candidate,
           channelCode: data.code
         });
@@ -2337,7 +2342,9 @@ function setupSocketHandlers(io, db) {
     socket.on('voice-rejoin', (data) => {
       if (!data || typeof data !== 'object') return;
       const code = typeof data.code === 'string' ? data.code.trim() : '';
+      const sessionId = typeof data.sessionId === 'string' ? data.sessionId.trim() : '';
       if (!code || !/^[a-f0-9]{8}$/i.test(code)) return;
+      if (!sessionId || sessionId.length > 128) return;
 
       // Verify channel membership
       const vch = db.prepare('SELECT id FROM channels WHERE code = ?').get(code);
@@ -2363,7 +2370,8 @@ function setupSocketHandlers(io, db) {
       voiceUsers.get(code).set(socket.user.id, {
         id: socket.user.id,
         username: socket.user.displayName,
-        socketId: socket.id
+        socketId: socket.id,
+        sessionId
       });
 
       // Tell existing peers about the re-joined user so they can re-establish WebRTC
@@ -2372,13 +2380,13 @@ function setupSocketHandlers(io, db) {
 
       socket.emit('voice-existing-users', {
         channelCode: code,
-        users: existingUsers.map(u => ({ id: u.id, username: u.username }))
+        users: existingUsers.map(u => ({ id: u.id, username: u.username, sessionId: u.sessionId || null }))
       });
 
       existingUsers.forEach(u => {
         io.to(u.socketId).emit('voice-user-joined', {
           channelCode: code,
-          user: { id: socket.user.id, username: socket.user.displayName }
+          user: { id: socket.user.id, username: socket.user.displayName, sessionId }
         });
       });
 

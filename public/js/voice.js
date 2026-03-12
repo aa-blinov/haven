@@ -13,6 +13,7 @@ class VoiceManager {
     this.isWebcamActive = false;
     this.peers = new Map();         // userId → { connection, stream, username }
     this.currentChannel = null;
+    this.voiceSessionId = null;
     this.isMuted = false;
     this.isDeafened = false;
     this.inVoice = false;
@@ -93,12 +94,17 @@ class VoiceManager {
     // We just joined: create peer connections + send offers to all existing users
     this.socket.on('voice-existing-users', async (data) => {
       for (const user of data.users) {
-        await this._createPeer(user.id, user.username, true);
+        await this._createPeer(user.id, user.username, true, user.sessionId || null);
       }
     });
 
     // Someone new joined our voice channel — they'll send us an offer
     this.socket.on('voice-user-joined', (data) => {
+      const joinedSessionId = data?.user?.sessionId || null;
+      const existingPeer = this.peers.get(data?.user?.id);
+      if (existingPeer && joinedSessionId && existingPeer.remoteSessionId && existingPeer.remoteSessionId !== joinedSessionId) {
+        this._removePeer(data.user.id);
+      }
       // The new user handles creating offers to existing users,
       // so we just wait for their offer via 'voice-offer'.
       if (this.onVoiceJoin && data && data.user) {
@@ -109,15 +115,21 @@ class VoiceManager {
     // Received an offer — create peer & answer
     this.socket.on('voice-offer', async (data) => {
       const { from, offer } = data;
+      const remoteSessionId = from?.sessionId || null;
 
       let peer = this.peers.get(from.id);
+      if (peer && remoteSessionId && peer.remoteSessionId && peer.remoteSessionId !== remoteSessionId) {
+        this._removePeer(from.id);
+        peer = null;
+      }
       if (!peer) {
-        await this._createPeer(from.id, from.username, false);
+        await this._createPeer(from.id, from.username, false, remoteSessionId);
         peer = this.peers.get(from.id);
       }
 
       try {
         const conn = peer.connection;
+        peer.remoteSessionId = remoteSessionId;
         // Handle renegotiation glare: if we have a pending local offer,
         // roll it back first so we can accept the incoming one.
         if (conn.signalingState !== 'stable') {
@@ -130,6 +142,7 @@ class VoiceManager {
         this.socket.emit('voice-answer', {
           code: this.currentChannel,
           targetUserId: from.id,
+          targetSessionId: remoteSessionId,
           answer: answer
         });
       } catch (err) {
@@ -141,6 +154,9 @@ class VoiceManager {
     this.socket.on('voice-answer', async (data) => {
       const peer = this.peers.get(data.from.id);
       if (peer) {
+        if (peer.remoteSessionId && data.from?.sessionId && peer.remoteSessionId !== data.from.sessionId) {
+          return;
+        }
         try {
           // Only accept answer if we're actually waiting for one
           // (we may have rolled back our offer due to glare)
@@ -157,6 +173,9 @@ class VoiceManager {
     this.socket.on('voice-ice-candidate', async (data) => {
       const peer = this.peers.get(data.from.id);
       if (peer && data.candidate) {
+        if (peer.remoteSessionId && data.from?.sessionId && peer.remoteSessionId !== data.from.sessionId) {
+          return;
+        }
         try {
           await peer.connection.addIceCandidate(new RTCIceCandidate(data.candidate));
         } catch (err) {
@@ -329,13 +348,16 @@ class VoiceManager {
       this._startNoiseGate();
 
       this.currentChannel = channelCode;
+      this.voiceSessionId = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+        ? globalThis.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       this.inVoice = true;
       this.isMuted = false;
       
       // Persist voice channel for auto-rejoin after page refresh or server restart
       try { localStorage.setItem('haven_voice_channel', channelCode); } catch {}
 
-      this.socket.emit('voice-join', { code: channelCode });
+      this.socket.emit('voice-join', { code: channelCode, sessionId: this.voiceSessionId });
 
       // Start local talk indicator (use raw stream for accurate detection)
       this._startLocalTalkDetection();
@@ -397,6 +419,7 @@ class VoiceManager {
     }
 
     this.currentChannel = null;
+    this.voiceSessionId = null;
     this.inVoice = false;
     this.isMuted = false;
     this.isDeafened = false;
@@ -465,6 +488,7 @@ class VoiceManager {
     }
 
     this.currentChannel = null;
+    this.voiceSessionId = null;
     this.inVoice = false;
     this.isMuted = false;
     this.isDeafened = false;
@@ -853,11 +877,13 @@ class VoiceManager {
 
   async _renegotiate(userId, connection) {
     try {
+      const peer = this.peers.get(userId);
       const offer = await connection.createOffer();
       await connection.setLocalDescription(offer);
       this.socket.emit('voice-offer', {
         code: this.currentChannel,
         targetUserId: userId,
+        targetSessionId: peer?.remoteSessionId || null,
         offer: offer
       });
     } catch (err) {
@@ -867,7 +893,7 @@ class VoiceManager {
 
   // ── Private: Peer connection management ─────────────────
 
-  async _createPeer(userId, username, createOffer) {
+  async _createPeer(userId, username, createOffer, remoteSessionId = null) {
     const connection = new RTCPeerConnection(this.rtcConfig);
 
     // Add our local audio tracks
@@ -977,6 +1003,7 @@ class VoiceManager {
         this.socket.emit('voice-ice-candidate', {
           code: this.currentChannel,
           targetUserId: userId,
+          targetSessionId: remoteSessionId,
           candidate: event.candidate
         });
       }
@@ -1009,7 +1036,7 @@ class VoiceManager {
       }
     };
 
-    this.peers.set(userId, { connection, stream: remoteAudioStream, username });
+    this.peers.set(userId, { connection, stream: remoteAudioStream, username, remoteSessionId });
 
     // If we're the initiator, create and send an offer
     if (createOffer) {
@@ -1020,6 +1047,7 @@ class VoiceManager {
         this.socket.emit('voice-offer', {
           code: this.currentChannel,
           targetUserId: userId,
+          targetSessionId: remoteSessionId,
           offer: offer
         });
       } catch (err) {
@@ -1044,11 +1072,13 @@ class VoiceManager {
 
   async _restartIce(userId, connection) {
     try {
+      const peer = this.peers.get(userId);
       const offer = await connection.createOffer({ iceRestart: true });
       await connection.setLocalDescription(offer);
       this.socket.emit('voice-offer', {
         code: this.currentChannel,
         targetUserId: userId,
+        targetSessionId: peer?.remoteSessionId || null,
         offer: offer
       });
     } catch (err) {

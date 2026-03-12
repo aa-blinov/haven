@@ -108,8 +108,8 @@ _setupSocketListeners() {
       this.socket.emit('request-voice-users', { code: this.currentChannel });
     }
     // Re-join voice if we were in voice before reconnect
-    if (this.voice && this.voice.inVoice && this.voice.currentChannel) {
-      this.socket.emit('voice-rejoin', { code: this.voice.currentChannel });
+    if (this.voice && this.voice.inVoice && this.voice.currentChannel && this.voice.voiceSessionId) {
+      this.socket.emit('voice-rejoin', { code: this.voice.currentChannel, sessionId: this.voice.voiceSessionId });
     } else {
       // Check localStorage for saved voice channel (persists across page refreshes / server restarts)
       try {
