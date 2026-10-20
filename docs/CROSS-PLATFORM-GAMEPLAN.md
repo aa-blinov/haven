@@ -28,7 +28,7 @@ The architecture should be:
 
 ---
 
-## 1. Notifications — Already Solved ✅
+## 1. Notifications — Already Solved 
 
 **Current state:** Haven already supports Web Push notifications via VAPID keys + service worker (`sw.js`). This works for:
 - **Browser clients** on any OS (Chrome, Firefox, Edge) — including Linux
@@ -203,7 +203,7 @@ healthcheck:
 ## 5. Priority Roadmap
 
 ### Phase 1 — Immediate (Before Release)
-1. ✅ Web Push notifications already work from Docker
+1.  Web Push notifications already work from Docker
 2. Add coturn sidecar to `docker-compose.yml`
 3. Create `.env.example` with all configuration documented
 4. Add "TURN server required" note to Docker deployment docs

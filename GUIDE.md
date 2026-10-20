@@ -1,10 +1,10 @@
-# ⬡ Haven — User Guide
+#  Haven — User Guide
 
 Welcome to **Haven**, your private chat server. This guide covers everything you need to get Haven running and invite your friends.
 
 ---
 
-## 📋 What You Need
+##  What You Need
 
 - **Windows 10 or 11** (macOS / Linux can run it manually)
 - **Node.js** version 18 or newer → [Download here](https://nodejs.org/)
@@ -13,7 +13,7 @@ Welcome to **Haven**, your private chat server. This guide covers everything you
 
 ---
 
-## 🐳 Docker Setup (Alternative)
+##  Docker Setup (Alternative)
 
 If you'd rather run Haven in a container (great for NAS boxes, servers, or if you just like Docker):
 
@@ -68,7 +68,7 @@ Your data is safe — it lives in the volume, not the container.
 
 ---
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Step 1 — First Launch
 
@@ -104,7 +104,7 @@ They'll register their own account, then enter the code to join your channel.
 
 ---
 
-## 📂 Channels & Sub-Channels
+##  Channels & Sub-Channels
 
 ### How Channels Work
 
@@ -123,11 +123,11 @@ Right-click (or click ⋯) on any channel to create a **sub-channel** beneath it
 - They're **automatically added** to all non-private sub-channels of that parent
 - They do NOT get access to private sub-channels (see below)
 
-### Private Sub-Channels 🔒
+### Private Sub-Channels 
 
-When creating a sub-channel, check the **🔒 Private** checkbox. Private sub-channels:
+When creating a sub-channel, check the ** Private** checkbox. Private sub-channels:
 - Only add the **creator** as initial member (not all parent members)
-- Show a **🔒** icon instead of `↳` in the sidebar
+- Show a **** icon instead of `↳` in the sidebar
 - Appear in *italic* text with reduced opacity
 - Can only be joined by entering the sub-channel's code directly
 - Are invisible to non-members (they won't see it in their channel list)
@@ -142,8 +142,8 @@ Haven can import your entire Discord server's message history — directly from 
 
 ### Method 1: Direct Connect (Recommended)
 
-1. Open **Settings** (⚙️ in the sidebar) → scroll to **Import Discord History**
-2. Click the **🔗 Connect to Discord** tab
+1. Open **Settings** (️ in the sidebar) → scroll to **Import Discord History**
+2. Click the ** Connect to Discord** tab
 3. Get your Discord token:
    - Open Discord in your browser (or desktop app with dev tools enabled)
    - Press **F12** → go to the **Application** tab
@@ -163,7 +163,7 @@ Haven can import your entire Discord server's message history — directly from 
 If you prefer, export your Discord data with [DiscordChatExporter](https://github.com/Tyrrrz/DiscordChatExporter) (JSON format), then:
 
 1. Open **Settings** → **Import Discord History**
-2. Click the **📁 Upload File** tab
+2. Click the ** Upload File** tab
 3. Drag/drop or browse for the `.json` or `.zip` file
 4. Preview, rename channels, and import
 
@@ -175,9 +175,9 @@ If you prefer, export your Discord data with [DiscordChatExporter](https://githu
 
 ---
 
-## �🔑 Join Code Settings (Admin)
+## � Join Code Settings (Admin)
 
-Each channel's invite code can be configured by admins. Click the **⚙️ gear icon** next to the channel code in the header.
+Each channel's invite code can be configured by admins. Click the **️ gear icon** next to the channel code in the header.
 
 ### Code Visibility
 | Setting | Behavior |
@@ -199,18 +199,18 @@ Each channel's invite code can be configured by admins. Click the **⚙️ gear 
 
 You can also click **Rotate Now** to manually change the code immediately.
 
-> 💡 Dynamic codes are great for public communities where you want to limit code sharing. Old codes stop working after rotation.
+>  Dynamic codes are great for public communities where you want to limit code sharing. Old codes stop working after rotation.
 
 ---
 
-## 🖼️ Avatars
+## ️ Avatars
 
 ### Uploading a Profile Picture
 
-1. Click the **⚙️ Settings** button in the sidebar
+1. Click the **️ Settings** button in the sidebar
 2. In the **Avatar** section, click **Upload**
 3. Choose an image (max 2 MB; JPEG, PNG, GIF, or WebP)
-4. Pick a shape: ⚪ Circle, ⬜ Square, ⬡ Hexagon, or ◇ Diamond
+4. Pick a shape:  Circle,  Square,  Hexagon, or ◇ Diamond
 5. Click **Save**
 
 Your avatar and shape are visible to everyone in messages and the member list. Each user's shape is stored independently.
@@ -221,11 +221,11 @@ Click **Clear** to remove your avatar and revert to the default initial-letter a
 
 ---
 
-## 🎨 Themes & Effects
+##  Themes & Effects
 
 ### Themes
 
-Haven includes 20+ visual themes. Click the **🎨** button at the bottom of the sidebar to open the theme picker. Themes change colors, fonts, and overall aesthetic. Your choice is saved per browser.
+Haven includes 20+ visual themes. Click the **** button at the bottom of the sidebar to open the theme picker. Themes change colors, fonts, and overall aesthetic. Your choice is saved per browser.
 
 ### Effect Overlays
 
@@ -234,22 +234,22 @@ Effects are stackable visual layers on top of any theme. Choose from the effect 
 | Effect | Description |
 |--------|-------------|
 | **⟳ Auto** | Matches your current theme's default effect |
-| **🚫 None** | No overlays |
-| **📺 CRT** | Retro scanlines + vignette + flicker |
+| ** None** | No overlays |
+| ** CRT** | Retro scanlines + vignette + flicker |
 | **Ⅿ Matrix** | Green digital rain cascade |
-| **❄ Snowfall** | Falling snowflakes |
-| **🔥 Campfire** | Ember particles + warm glow |
-| **💍 Golden Grace** | Elden Ring-style golden particles |
-| **🩸 Blood Vignette** | Dark pulsing edges |
-| **☢️ Phosphor** | Fallout-style green vignette |
-| **⚔️ Water Flow** | Gentle blue sidebar animation |
-| **🧊 Frost** | Ice shimmer + icicle borders |
-| **⚡ Glitch** | Cyberpunk text scramble (see below) |
-| **⚜ Candlelight** | Warm sidebar glow |
-| **🌊 Ocean Depth** | Deep blue vignette |
-| **✝️ / ⛪ / 🕊️** | Sacred themed overlays |
+| ** Snowfall** | Falling snowflakes |
+| ** Campfire** | Ember particles + warm glow |
+| ** Golden Grace** | Elden Ring-style golden particles |
+| ** Blood Vignette** | Dark pulsing edges |
+| **️ Phosphor** | Fallout-style green vignette |
+| **️ Water Flow** | Gentle blue sidebar animation |
+| ** Frost** | Ice shimmer + icicle borders |
+| ** Glitch** | Cyberpunk text scramble (see below) |
+| ** Candlelight** | Warm sidebar glow |
+| ** Ocean Depth** | Deep blue vignette |
+| **️ /  / ️** | Sacred themed overlays |
 
-### Cyberpunk Text Scramble ⚡
+### Cyberpunk Text Scramble 
 
 When the Glitch effect is active, text around the UI randomly "scrambles" — cycling through random characters before resolving back to the original text. This affects:
 - The **HAVEN** logo
@@ -263,7 +263,7 @@ A **Glitch Frequency** slider appears in the theme popup when this effect is act
 
 ---
 
-## 🌐 Setting Up Remote Access (Friends Over the Internet)
+##  Setting Up Remote Access (Friends Over the Internet)
 
 If your friends are **not** on your local WiFi, you need to set up port forwarding so they can reach your PC from the internet.
 
@@ -312,7 +312,7 @@ Send them this URL:
 https://YOUR_PUBLIC_IP:3000
 ```
 
-> ⚠️ **Certificate Warning:** Your friends' browsers will show a security warning because Haven uses a self-signed certificate. This is normal and expected. Tell them to click **"Advanced"** → **"Proceed to site"**. The connection is still encrypted.
+> ️ **Certificate Warning:** Your friends' browsers will show a security warning because Haven uses a self-signed certificate. This is normal and expected. Tell them to click **"Advanced"** → **"Proceed to site"**. The connection is still encrypted.
 
 ---
 
@@ -347,7 +347,7 @@ cloudflared --version
 
 1. Start Haven normally (`Start Haven.bat`)
 2. Log in as admin
-3. Open **⚙️ Settings** → scroll to the **Tunnel** section
+3. Open **️ Settings** → scroll to the **Tunnel** section
 4. Select **Cloudflare** as the tunnel provider
 5. Flip the toggle **on**
 6. Haven will start cloudflared and display your public URL (e.g. `https://abc-def-123.trycloudflare.com`)
@@ -371,10 +371,10 @@ Copy the tunnel URL and send it to your friends. That's it — no port forwardin
 | **Exposes home IP** | Yes | No |
 | **Firewall rules** | Required | None |
 | **Stable URL** | Your IP (may change) | Random URL (changes on restart) |
-| **Push notifications** | ✅ (if HTTPS) | ✅ |
-| **Voice chat** | ✅ | ✅ |
+| **Push notifications** |  (if HTTPS) |  |
+| **Voice chat** |  |  |
 
-> 💡 **Tip:** For a permanent URL, you can set up a free Cloudflare account and use a named tunnel with your own domain. See [Cloudflare's tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) for details.
+>  **Tip:** For a permanent URL, you can set up a free Cloudflare account and use a named tunnel with your own domain. See [Cloudflare's tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) for details.
 
 ### Troubleshooting Tunnels
 
@@ -387,7 +387,7 @@ Copy the tunnel URL and send it to your friends. That's it — no port forwardin
 
 ---
 
-## �🔧 Router-Specific Tips
+## � Router-Specific Tips
 
 ### Xfinity / Comcast (XB7 Gateway)
 
@@ -411,36 +411,36 @@ Copy the tunnel URL and send it to your friends. That's it — no port forwardin
 
 ---
 
-## 🎨 Themes
+##  Themes
 
 Haven comes with 6 themes. Switch between them using the theme buttons at the bottom of the left sidebar:
 
 | Button | Theme | Style |
 |--------|-------|-------|
-| ⬡ | **Haven** | Deep blue/purple (default) |
-| 🎮 | **Discord** | Dark gray with blue accents |
+|  | **Haven** | Deep blue/purple (default) |
+|  | **Discord** | Dark gray with blue accents |
 | Ⅿ | **Matrix** | Black and green, scanline overlay |
 | ◈ | **Tron** | Black with neon cyan glow |
 | ⌁ | **HALO** | Military green with Mjolnir vibes |
-| ⚜ | **LoTR** | Parchment gold and deep brown |
-| 🌆 | **Cyberpunk** | Neon pink and electric yellow |
-| ❄ | **Nord** | Arctic blue and frost |
-| 🧛 | **Dracula** | Deep purple and blood red |
-| ⚔ | **Bloodborne** | Gothic crimson and ash |
-| ⬚ | **Ice** | Pale blue and white |
-| 🌊 | **Abyss** | Deep ocean darkness |
+|  | **LoTR** | Parchment gold and deep brown |
+|  | **Cyberpunk** | Neon pink and electric yellow |
+|  | **Nord** | Arctic blue and frost |
+|  | **Dracula** | Deep purple and blood red |
+|  | **Bloodborne** | Gothic crimson and ash |
+|  | **Ice** | Pale blue and white |
+|  | **Abyss** | Deep ocean darkness |
 
 Your theme choice is saved per browser.
 
 ---
 
-## 🎤 Voice Chat
+##  Voice Chat
 
 1. Join a text channel first
-2. Click **🎤 Join Voice** in the channel header
+2. Click ** Join Voice** in the channel header
 3. Allow microphone access when your browser asks
-4. Click **🔇 Mute** to toggle your mic
-5. Click **📞 Leave** to disconnect from voice
+4. Click ** Mute** to toggle your mic
+5. Click ** Leave** to disconnect from voice
 
 Voice chat is **peer-to-peer** — audio goes directly between you and other users, not through the server.
 
@@ -479,7 +479,7 @@ Restart Haven, and voice/screen sharing will work across any network.
 
 ---
 
-## 🔔 Push Notifications
+##  Push Notifications
 
 Push notifications let you receive alerts when someone messages a channel you're in, even when the Haven tab is in the background or closed.
 
@@ -492,7 +492,7 @@ Push notifications let you receive alerts when someone messages a channel you're
 ### How to Enable
 
 1. Open Haven in your browser via `https://` (e.g., `https://localhost:3000` or `https://your-domain:3000`)
-2. Click the **⚙️ Settings** button (bottom of the right sidebar)
+2. Click the **️ Settings** button (bottom of the right sidebar)
 3. Scroll to **Push Notifications** and flip the toggle **on**
 4. Your browser will ask for notification permission — click **Allow**
 5. The status should change to **Enabled**
@@ -528,7 +528,7 @@ Push notifications let you receive alerts when someone messages a channel you're
 
 ---
 
-## ⚙️ Configuration
+## ️ Configuration
 
 All settings are in the `.env` file in your **data directory**:
 
@@ -548,7 +548,7 @@ All settings are in the `.env` file in your **data directory**:
 
 ---
 
-## 💡 Tips
+##  Tips
 
 - **Bookmark the URL** — so you don't have to type the IP every time
 - **Keep the bat window open** — closing it stops the server
@@ -558,7 +558,7 @@ All settings are in the `.env` file in your **data directory**:
 
 ---
 
-## 🔐 End-to-End Encryption (E2E)
+##  End-to-End Encryption (E2E)
 
 All direct messages in Haven are **end-to-end encrypted**. The server never has access to the plaintext of your DMs or the keys needed to decrypt them.
 
@@ -586,7 +586,7 @@ All direct messages in Haven are **end-to-end encrypted**. The server never has 
 |---|---|
 | Clear all browser/site data when that's your only device | IndexedDB is wiped — on re-login the server backup may still unwrap if password hasn't changed |
 | Clear browser data **after** changing your password | Server backup was wrapped with the old password — new password can't unwrap it → new keys generated |
-| Manually reset encryption keys (🔄 button in DM header) | Intentional wipe — new key pair, old messages unreadable |
+| Manually reset encryption keys ( button in DM header) | Intentional wipe — new key pair, old messages unreadable |
 | Admin deletes your account or resets the database | Server backup gone — if IndexedDB is also empty, fresh keys are generated |
 
 **Short version:** Same password + at least one of (IndexedDB **or** server backup) = keys survive. Lost both = old messages gone forever.
@@ -604,7 +604,7 @@ All direct messages in Haven are **end-to-end encrypted**. The server never has 
 
 ### Resetting Encryption Keys
 
-In any DM conversation, click the **🔄** button in the channel header to reset your encryption keys. This:
+In any DM conversation, click the **** button in the channel header to reset your encryption keys. This:
 - Generates a brand new key pair
 - Makes **all** previous encrypted messages **permanently unreadable** for both parties
 - Posts a timestamped notice in the chat so both users know when/why old messages became unreadable
@@ -612,11 +612,11 @@ In any DM conversation, click the **🔄** button in the channel header to reset
 
 ### Verifying Encryption
 
-Click the **🔐** button in the DM header to view your **safety number** — a 60-digit code derived from both users' public keys. Compare it with your conversation partner through a separate channel (phone, in person, etc.). If they match, no one is intercepting your conversation.
+Click the **** button in the DM header to view your **safety number** — a 60-digit code derived from both users' public keys. Compare it with your conversation partner through a separate channel (phone, in person, etc.). If they match, no one is intercepting your conversation.
 
 ---
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 **"SSL_ERROR_RX_RECORD_TOO_LONG" or "ERR_SSL_PROTOCOL_ERROR" in browser**
 → Your browser is trying to connect via `https://` but the server is actually running in HTTP mode. This happens when SSL certificates weren't generated (usually because OpenSSL isn't installed).
@@ -649,5 +649,5 @@ Check the server's startup banner in the terminal. If it says `http://localhost:
 ---
 
 <p align="center">
-  <b>⬡ Haven</b> — Your server. Your rules.
+  <b> Haven</b> — Your server. Your rules.
 </p>

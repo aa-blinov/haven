@@ -105,7 +105,7 @@ way a browser does — it's just a better experience.
 - **macOS:** BlackHole virtual audio driver (future)
 - Built-in audio engine — no external drivers required for basic capture
 - System-wide audio capture via Electron `desktopCapturer` loopback
-- Audio panel UI (🎵 button in voice controls) showing audio-producing apps
+- Audio panel UI ( button in voice controls) showing audio-producing apps
 - Per-app volume control
 - AudioMixer combines mic + app audio → replaces WebRTC audio track
 
@@ -140,7 +140,7 @@ desktop/                            # Electron app (separate repo going forward)
 │   │   ├── haven-capture.cs        # C# native WASAPI capture helper (compiled at runtime)
 │   │   └── get-audio-apps.ps1      # PowerShell script for Windows audio session enumeration
 │   └── renderer/                   # Scripts injected into Haven's web UI
-│       ├── audio-panel.js          # 🎵 button → per-app routing UI
+│       ├── audio-panel.js          #  button → per-app routing UI
 │       ├── audio-settings.js       # Mic/speaker dropdown menus in Settings
 │       ├── voice-integration.js    # Patches VoiceManager.join()/leave() for AudioMixer
 │       └── server-manager.js       # Server start/stop controls
