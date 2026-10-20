@@ -1,20 +1,25 @@
-<!-- house-style: template — fill this file in, then delete this line -->
-
 # Screenshots
 
-Images referenced from the README and the documents.
+This folder is empty, and the picture in the README is not here.
 
-<!--
-  Put the files here and reference them from the README:
+The README shows one image, the chat window, and it is hosted by GitHub as
+a user attachment rather than committed to the repository:
 
-  ```markdown
-  ![The main window](docs/screenshots/main.png)
-  ```
+```
+https://github.com/user-attachments/assets/0c85ca6c-f811-43db-a26b-9b66c418830e
+```
 
-  Images are referenced by relative path, so they resolve both on GitHub and
-  in a local checkout. The house-style checker verifies that every image
-  reference points at a file that exists, so a renamed screenshot cannot
-  quietly break the README.
+The reason is that the interface is a running server. A screenshot of the
+chat window is a picture of somebody's conversation, and the conversations
+in it belong to the people who wrote them. Committing one would put their
+messages in the repository, where anybody with a clone could read them.
 
-  Delete this file once the project has images of its own.
--->
+What is in the repository instead is the interface itself: the stylesheet
+with all twenty-six themes, the SVG icons in `public/`, and the game
+avatars in `public/games/`. `../DESIGN.md` records the tokens and the
+components those files draw.
+
+If a screenshot is ever added, it goes in this folder and the README
+references it by relative path, so that it resolves both on GitHub and in a
+local checkout. The house-style checker verifies that every image reference
+points at a file that exists.
