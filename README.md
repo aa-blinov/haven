@@ -41,7 +41,7 @@ The certificate is self-signed, so the browser asks once before it opens the pag
 - **Text channels.** Channels nest one level as sub-channels, and a sub-channel can be private and reachable only by invitation. Each channel has a topic, a type (standard, text only, voice only), a slow mode, and switches for uploads, screen sharing and the music player.
 - **Join codes.** Every channel carries an eight-character code. An admin decides whether the code is public or private, whether it stays the same or rotates on a timer or on a join count, and a server-wide code joins every top-level channel at once.
 - **Voice and screen sharing.** Calls are peer to peer. Each participant has a volume slider, and there are mute, deafen, talking indicators and synthesized tones when someone joins or leaves. Several people can share their screen or camera at once and the tiles are laid out in a grid.
-- **Messages.** Bold, italic, strikethrough, inline code, spoilers, fenced code blocks with a language label and blockquotes. Replies, reactions, pins, edits, polls, typing indicators, unread counts that survive a reload, search with Ctrl+F, and twenty-two slash commands from `/shrug` to `/roll 2d20`.
+- **Messages.** Bold, italic, strikethrough, inline code, spoilers, fenced code blocks with a language label and blockquotes. Replies, reactions, pins, edits, polls, typing indicators, unread counts that survive a reload, search with Ctrl+F, and twenty-one slash commands from `/shrug` to `/roll 2d20`.
 - **Files.** Images and any other kind of file up to the size the admin sets, 25 MB by default. Avatars come in five shapes, an admin can upload custom emojis and notification sounds, and audio and video get an inline player.
 - **Link previews and GIFs.** A pasted URL is fetched on the server and its Open Graph title, description and thumbnail are shown. The GIF picker searches GIPHY and needs an API key.
 - **Accounts.** A username and a password, hashed with bcrypt, and a JWT that lasts seven days. Two-factor authentication with TOTP and backup codes, and recovery codes for a lost password, both optional. No email address is ever asked for.
@@ -49,7 +49,7 @@ The certificate is self-signed, so the browser asks once before it opens the pag
 - **Moderation.** Kick, timed mute, ban, delete a user, roles with per-channel permissions, a registration whitelist, slow mode, and automatic cleanup of old messages and files.
 - **Bot webhooks.** An admin creates a webhook for a channel and posts to it with a 64-character token. The message lands in the channel with the name and avatar of your choosing.
 - **Discord import.** A channel history can be brought across from a Discord server, either by connecting with a token or by uploading a DiscordChatExporter JSON file or a Discord data package. Messages, replies, reactions, pins, attachments and avatars are carried over.
-- **Plugins and themes.** A file named `something.plugin.js` in `plugins/` becomes a plugin, and a file named `something.theme.css` in `themes/` becomes a theme. The loader lists both, and the admin panel turns them on.
+- **Plugins and themes.** A file named `something.plugin.js` in `plugins/` becomes a plugin, and a file named `something.theme.css` in `themes/` becomes a theme. The settings panel lists both, and each person turns them on in their own browser.
 - **Games.** A canvas mini-game with a leaderboard kept in the database, and pages for .io games and for Flash through Ruffle.
 
 ## How it works
@@ -63,7 +63,7 @@ browser  --HTTP/JSON-->  Express (server.js)  -->  SQLite (better-sqlite3)
 
 One Node.js process does everything. It serves the client from `public/`, the JSON API, and the Socket.IO endpoint that carries chat, presence, voice signalling and the admin panel. There is no build step for the client: `public/app.html` loads `public/js/app.js` as an ES module, and that file pulls in eleven modules from `public/js/modules/` and merges them onto the prototype of one class.
 
-The database is SQLite through better-sqlite3. The schema lives in `src/database.js`, which creates the tables and adds the columns an older install is missing every time the server starts. Users, channels, memberships, messages, reactions, roles, permissions, webhooks, read positions and settings are all rows.
+The database is SQLite through better-sqlite3. The schema lives in `src/database.js`, which creates the tables and, on every start, adds the columns that an older install is missing. Users, channels, memberships, messages, reactions, roles, permissions, webhooks, read positions and settings are all rows.
 
 Voice is WebRTC. The server never carries audio: it relays the offer, the answer and the ICE candidates between the participants. The client asks `/api/ice-servers` for its STUN and TURN configuration, and the server answers with two Google STUN servers plus, when the operator has set `TURN_URL`, a coturn relay. With a TURN shared secret the credentials are HMAC-SHA1 and expire after 24 hours.
 

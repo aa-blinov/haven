@@ -52,6 +52,7 @@ Node 18 to 24. The client has no build step: the browser loads the ES modules in
 - **An uploaded file that is not an image is sent as an attachment.** The `/uploads` handler sets `Content-Disposition: attachment` for everything that is not a JPEG, PNG, GIF or WebP, and the image routes check the magic bytes of the file before they store it. Both halves have to stay.
 - **The database pragmas are small on purpose.** The page cache is 8 MB, the memory map is 32 MB and the hard heap limit is 64 MB, because the same server runs next to Electron in the desktop client. Raising them brings back the crash they were set to avoid.
 - **An old copy of the client is still in the repository.** `public/js/app.js.bak` is the single-file client from before the split into modules, and `express.static` serves it at `/js/app.js.bak`.
+- **The update banner watches the upstream repository.** `_checkForUpdates` in `public/js/modules/app-platform.js` reads the version from `/api/version` and compares it with the newest release published by ancsemi/Haven on GitHub, every thirty minutes. In a fork the banner therefore follows the original project's releases.
 
 ## Style / safety rails
 

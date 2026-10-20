@@ -6,11 +6,11 @@
 
 web
 
-The server is Node.js 18 to 24: Express for the HTTP routes, Socket.IO for chat, presence, voice signalling and the admin panel, and better-sqlite3 for storage. The client is a browser page served by the same process, with a web manifest and a service worker, so it installs on a phone as a web application. A container image is published for Linux on amd64 and arm64. Two native clients live outside this repository: a desktop application in beta and an Android application in closed beta. This repository is a fork of ancsemi/Haven, which is where the release history and the issue tracker live.
+The server is Node.js 18 to 24: Express for the HTTP routes, Socket.IO for chat, presence, voice signalling and the admin panel, and better-sqlite3 for storage. The client is a browser page served by the same process, with a web manifest that lets it install on a phone as a web application and a service worker that receives the push notifications. A container image is published for Linux on amd64 and arm64. Two native clients live outside this repository: a desktop application in beta and an Android application in closed beta. This repository is a fork of ancsemi/Haven, which is where the release history and the issue tracker live.
 
 ## Users
 
-The repository description says it in one line: a Discord alternative that runs on your own machine, with no cloud, no telemetry and no account with a large company.
+The repository description says it in one line: a Discord alternative that runs on your own machine, with no cloud, no telemetry and no Big Tech.
 
 The README names four groups: small friend groups who want a private place to talk, self-hosters who run services on their own hardware, communities that have finished with hosted platforms, and gaming crews on a local network who need voice and screen share without Discord.
 
@@ -54,7 +54,7 @@ Confirmed by the code:
 - Channels nest one level as sub-channels, and a sub-channel can be private. Each channel has a topic, a type of standard, text only or voice only, a slow mode, and switches for uploads, screen sharing and the music player.
 - A channel code is eight hex characters. It can be public or private, static or rotating on a timer or on a join count, and a server-wide code opens every top-level channel at once.
 - Voice and screen sharing are peer to peer over WebRTC, with two STUN servers and an optional TURN relay whose credentials expire after 24 hours.
-- A message is up to 2000 characters, with formatting, replies, reactions, pins, edits, polls, typing indicators, search, and twenty-two slash commands.
+- A message is up to 2000 characters, with formatting, replies, reactions, pins, edits, polls, typing indicators, search, and twenty-one slash commands, seventeen of which the server answers and four of which the client handles.
 - Files are accepted up to the size the admin sets, 25 MB by default, with a 2 MB ceiling on an avatar and a 2 GB hard ceiling on a stored file.
 - The browser receives web-push with VAPID keys generated on the first boot. The mobile client receives Firebase Cloud Messaging, sent directly with a service account, through a relay of your own, or through the shared relay the project runs.
 - Direct messages are sealed in the browser with ECDH P-256, HKDF-SHA256 and AES-256-GCM. The private key is wrapped with a key derived from the password, and the server holds the public key and the wrapped blob.
@@ -77,9 +77,9 @@ Deliberately not true, and worth knowing before a change:
 
 **Name:** Haven. The mark is a hexagon, and it is the logo in the tab and in the sidebar.
 
-**Tone:** plain and technical. The interface names the state of the thing it is doing, with the number in the message: "Upload rate limit, try again in a minute", "Image too large (max 25 MB)", the port in the startup banner. Nothing reassures the user; it tells them what happened.
+**Tone:** plain and technical. The interface names the state of the thing it is doing, with the number in the message: "You are muted for 12 more minutes", "Image too large (max 25 MB)", the port in the startup banner. Nothing reassures the user; it tells them what happened.
 
-**Keeping promises:** the changelog follows Keep a Changelog, the version in `package.json` matches the newest entry in the changelog, and the client asks the server for that version so it can tell the user when it is behind.
+**Keeping promises:** the changelog follows Keep a Changelog, the version in `package.json` matches the newest entry in the changelog, and the client compares the version the server reports with the newest release published on GitHub and shows a banner when the two differ.
 
 ## Evidence on Hand
 
@@ -101,7 +101,7 @@ Absent, and not to be invented: no download counts, no number of running servers
 
 ## Accessibility & Inclusion
 
-- **The client is a web page.** A screen reader, a magnifier and a keyboard work without an install. The keyboard paths that exist are Enter to send, Shift+Enter for a new line, Tab to accept a suggestion from the mention, emoji or slash list, and Ctrl+F to search.
+- **The client is a web page.** There is nothing to install, so the browser's own zoom and the platform text size apply, and the keyboard paths that exist are Enter to send, Shift+Enter for a new line, Tab to accept a suggestion from the mention, emoji or slash list, and Ctrl+F to search.
 - **The interface states outcomes in words.** A refused upload, a mute and a rate limit each arrive as a sentence with the limit in it.
 - **Nothing has been decided about a contrast standard.** The palette is computed from one accent colour and there is no ratio check, in the light themes or the dark ones.
 - **The markup carries very little for a screen reader.** Seven elements in the chat client have an `aria-label` and the login page has none, and no part of the interface has been read aloud by a test.
