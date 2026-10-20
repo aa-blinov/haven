@@ -14,8 +14,8 @@ what the interface looks like.
 | [screenshots/README.md](screenshots/README.md) | Where the picture in the README comes from, and why this folder is empty. |
 | [CROSS-PLATFORM-GAMEPLAN.md](CROSS-PLATFORM-GAMEPLAN.md) | The plan for the native desktop and mobile clients. |
 | [examples/haven-traefik-coturn/README.md](examples/haven-traefik-coturn/README.md) | A deployment behind Traefik with a coturn relay, with the ports it needs. |
-| [index.html](index.html) | The landing page, served as a static file. `website/index.html` is kept identical to it. |
-| [support.html](support.html) | The support page. |
+| [index.html](../website/index.html) | The landing page, served as a static file. `website/index.html` is kept identical to it. |
+| [support.html](../website/support.html) | The support page. |
 | [../README.md](../README.md) | The front door: the installers, the capability list and the configuration. |
 | [../GUIDE.md](../GUIDE.md) | The user guide: setup, channels, join codes, remote access, tunnels, voice and push. |
 | [../PRODUCT.md](../PRODUCT.md) | Who the server is for, and what it must not turn into. |
