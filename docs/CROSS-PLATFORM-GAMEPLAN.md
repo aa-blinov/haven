@@ -28,7 +28,7 @@ The architecture should be:
 
 ---
 
-## 1. Notifications — Already Solved 
+## 1. Notifications — Already Solved
 
 **Current state:** Haven already supports Web Push notifications via VAPID keys + service worker (`sw.js`). This works for:
 - **Browser clients** on any OS (Chrome, Firefox, Edge) — including Linux

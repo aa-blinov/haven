@@ -123,7 +123,7 @@ Right-click (or click ⋯) on any channel to create a **sub-channel** beneath it
 - They're **automatically added** to all non-private sub-channels of that parent
 - They do NOT get access to private sub-channels (see below)
 
-### Private Sub-Channels 
+### Private Sub-Channels
 
 When creating a sub-channel, check the ** Private** checkbox. Private sub-channels:
 - Only add the **creator** as initial member (not all parent members)
@@ -249,7 +249,7 @@ Effects are stackable visual layers on top of any theme. Choose from the effect 
 | ** Ocean Depth** | Deep blue vignette |
 | **️ /  / ️** | Sacred themed overlays |
 
-### Cyberpunk Text Scramble 
+### Cyberpunk Text Scramble
 
 When the Glitch effect is active, text around the UI randomly "scrambles" — cycling through random characters before resolving back to the original text. This affects:
 - The **HAVEN** logo
