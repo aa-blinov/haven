@@ -169,7 +169,7 @@ _setupSocketListeners() {
       }
       // Re-fetch channels in case list changed while backgrounded
       this.socket?.emit('get-channels');
-      
+
       // Mobile voice fix: check if we should be in voice but got disconnected
       try {
         const savedVoiceChannel = localStorage.getItem('haven_voice_channel');

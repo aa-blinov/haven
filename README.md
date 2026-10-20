@@ -1,428 +1,138 @@
+# Haven
 
+Haven is a chat server for a group of people who would rather run it themselves. One Node.js process serves the web client, the JSON API and the Socket.IO endpoint, and keeps messages, users and settings in a SQLite file on the machine you started it on. Voice calls go from browser to browser over WebRTC, so the audio never passes through the server.
 
+![The Haven chat window](https://github.com/user-attachments/assets/0c85ca6c-f811-43db-a26b-9b66c418830e)
 
-# ⬡ HAVEN — Private Chat That Lives On Your Machine
-
-> **Your server. Your rules. No cloud. No accounts with Big Tech. No one reading your messages.**
-
-![Version](https://img.shields.io/badge/version-2.3.0-blue)
-![License](https://img.shields.io/badge/license-MIT--NC-green)
-![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey)
-
-Haven is a self-hosted Discord alternative. Run it on your machine. Invite friends with a code. No cloud. No email signup. No tracking. Free forever.
-
-<img width="1917" height="948" alt="Screenshot 2026-02-14 102013" src="https://github.com/user-attachments/assets/0c85ca6c-f811-43db-a26b-9b66c418830e" />
+[![Version](https://img.shields.io/badge/version-2.7.4-blue)](https://github.com/aa-blinov/haven/releases)
+[![License](https://img.shields.io/badge/license-MIT--NC-green)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Docker image](https://github.com/aa-blinov/haven/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/aa-blinov/haven/actions/workflows/docker-publish.yml)
 
 ---
 
-## 🖥️ NEW — Haven Desktop (Beta)
+## Quick start
 
-> **Want a native desktop experience?** Haven Desktop is a standalone app that connects to any Haven server — with features that go beyond the browser.
+### Docker
 
-**[Haven Desktop](https://github.com/ancsemi/Haven-Desktop)** is now available as a public beta. Download the installer and connect to your server in seconds.
-
-- **Per-Application Audio** — share audio from a single app during screen share, just like Discord. Powered by native WASAPI (Windows) and PulseAudio (Linux) hooks.
-- **Audio Device Switching** — change your mic and speaker mid-call without leaving voice chat
-- **Native Desktop Notifications** — OS-level notifications via the system tray
-- **Minimize to Tray** — keeps running quietly in the background
-- **One-Click Install** — NSIS installer (Windows), AppImage / .deb (Linux). Download, run, done.
-
-> **⚠️ This is a beta release.** Bugs are expected. Your feedback is what makes it better — please [open an issue](https://github.com/ancsemi/Haven-Desktop/issues) if something breaks or feels off.
->
-> **You still need a Haven server.** The desktop app is a client — it connects to a Haven server. Download and run [Haven](https://github.com/ancsemi/Haven) first if you haven't already.
-
-📥 **[Download Haven Desktop →](https://github.com/ancsemi/Haven-Desktop/releases/latest)**
-
----
-
-## 📱 NEW — Haven Android (Closed Beta)
-
-> **Want Haven on your phone?** Haven Android is a native Android app built from the ground up, now in closed beta on Google Play.
-
-**Haven Android** features full chat and voice support, push notifications, and a true mobile-native experience.
-
-- **Native Android** — built from scratch specifically for Haven, not a web wrapper
-- **Push Notifications** — real-time notifications via Google Play services
-- **Full Chat & Voice** — all the features you love, in your pocket
-
-> **🚀 Want to join the beta?** Visit **[amni-scient.com/amni-haven.html](https://amni-scient.com/amni-haven.html)** to request access to the closed beta.
->
-> **You still need a Haven server.** The Android app is a client — it connects to a Haven server. Download and run [Haven](https://github.com/ancsemi/Haven) first if you haven't already.
-
-*Built with ❤️ by **Amnibro** — huge thanks for his incredible work building the Haven Android app from the ground up.*
-
-📲 **[Request Android Beta Access →](https://amni-scient.com/amni-haven.html)**
-
----
-
-## NEW in v2.0.0 — Import Your Discord History
-
-> **Leaving Discord?** Haven can import your entire server's message history — directly from the app. No external tools, no command-line exports, no hassle.
-
-Open **Settings → Import** and connect with your Discord token. Haven pulls every channel, thread, forum post, announcement, reaction, pin, attachment, and avatar — then lets you map them to Haven channels. Your community's history comes with you.
-
-- **Direct Connect** — paste your Discord token, pick a server, select channels & threads, import
-- **File Upload** — or upload a DiscordChatExporter JSON/ZIP if you prefer
-- **Full fidelity** — messages, replies, embeds, attachments, reactions, pins, forum tags, all preserved
-- **Discord avatars** — imported messages show the original author's Discord profile picture
-- **All channel types** — text, announcement, forum, media, plus active & archived threads
-
-Your entire Discord history, now on a server you own. No one can delete it, no one can read it, no one can take it away.
-
----
-
-## Quick Start — Docker (Recommended)
-
-**Option A — Pre-built image** (fastest):
 ```bash
-docker pull ghcr.io/ancsemi/haven:latest
-docker run -d -p 3000:3000 -v haven_data:/data ghcr.io/ancsemi/haven:latest
-```
-
-**Option B — Build from source**:
-```bash
-git clone https://github.com/ancsemi/Haven.git
-cd Haven
+git clone https://github.com/aa-blinov/haven.git
+cd haven
 docker compose up -d
 ```
 
-Open `https://localhost:3000` → Register with username `admin` → Create a channel → Share the code with friends. Done.
+The compose file builds the image from this checkout, keeps the data in the `haven_data` volume, and publishes port 3000 for HTTPS plus port 3001 for the HTTP redirect. Open `https://localhost:3000`, register with the name `admin`, create a channel, and send the eight-character channel code to the people you want in it.
 
-> Certificate warning is normal — click **Advanced → Proceed**. Haven uses a self-signed cert for encryption.
+A published image exists as well, at `ghcr.io/ancsemi/haven:latest`. It is built by the upstream project and carries a newer version than this checkout, so pull it only when you want that code.
 
----
+### The other routes
 
-## Quick Start — Windows (No Docker)
+| Route | Command | What it is for |
+| --- | --- | --- |
+| Windows launcher | `Start Haven.bat` | Installs Node.js if it is missing, installs the dependencies, generates the certificate and opens the browser. |
+| Linux and macOS launcher | `chmod +x start.sh && ./start.sh` | The same steps in a shell. |
+| Web installer | `chmod +x install.sh && ./install.sh` | A wizard in the browser that asks for the server name and the admin password. It binds to 127.0.0.1 only. |
+| Plain Node | `npm install && node server.js` | Nothing around it: no certificate, no launcher, no wizard. |
 
-1. Download and unzip this repository
-2. Double-click **`Start Haven.bat`**
-3. If Node.js isn't installed, the script will offer to install it for you automatically
+The certificate is self-signed, so the browser asks once before it opens the page. Voice chat needs a secure origin: it works on `http://localhost`, and from another machine it needs the HTTPS listener.
 
-That's it. The batch file handles everything — Node.js installation, dependencies, SSL certificates, config — and opens your browser. Register as `admin` to get started.
+## What it does
 
-> **Don't have Node.js?** No problem. The launcher detects this and can install it for you with one keypress. Or install it yourself from [nodejs.org](https://nodejs.org/) and restart your PC.
+- **Text channels.** Channels nest one level as sub-channels, and a sub-channel can be private and reachable only by invitation. Each channel has a topic, a type (standard, text only, voice only), a slow mode, and switches for uploads, screen sharing and the music player.
+- **Join codes.** Every channel carries an eight-character code. An admin decides whether the code is public or private, whether it stays the same or rotates on a timer or on a join count, and a server-wide code joins every top-level channel at once.
+- **Voice and screen sharing.** Calls are peer to peer. Each participant has a volume slider, and there are mute, deafen, talking indicators and synthesized tones when someone joins or leaves. Several people can share their screen or camera at once and the tiles are laid out in a grid.
+- **Messages.** Bold, italic, strikethrough, inline code, spoilers, fenced code blocks with a language label and blockquotes. Replies, reactions, pins, edits, polls, typing indicators, unread counts that survive a reload, search with Ctrl+F, and twenty-two slash commands from `/shrug` to `/roll 2d20`.
+- **Files.** Images and any other kind of file up to the size the admin sets, 25 MB by default. Avatars come in five shapes, an admin can upload custom emojis and notification sounds, and audio and video get an inline player.
+- **Link previews and GIFs.** A pasted URL is fetched on the server and its Open Graph title, description and thumbnail are shown. The GIF picker searches GIPHY and needs an API key.
+- **Accounts.** A username and a password, hashed with bcrypt, and a JWT that lasts seven days. Two-factor authentication with TOTP and backup codes, and recovery codes for a lost password, both optional. No email address is ever asked for.
+- **Encrypted direct messages.** A key pair is generated in the browser, the private key is wrapped with a key derived from the password, and direct messages are sealed with AES-256-GCM. The server stores the public key and the wrapped blob, and cannot read a message.
+- **Moderation.** Kick, timed mute, ban, delete a user, roles with per-channel permissions, a registration whitelist, slow mode, and automatic cleanup of old messages and files.
+- **Bot webhooks.** An admin creates a webhook for a channel and posts to it with a 64-character token. The message lands in the channel with the name and avatar of your choosing.
+- **Discord import.** A channel history can be brought across from a Discord server, either by connecting with a token or by uploading a DiscordChatExporter JSON file or a Discord data package. Messages, replies, reactions, pins, attachments and avatars are carried over.
+- **Plugins and themes.** A file named `something.plugin.js` in `plugins/` becomes a plugin, and a file named `something.theme.css` in `themes/` becomes a theme. The loader lists both, and the admin panel turns them on.
+- **Games.** A canvas mini-game with a leaderboard kept in the database, and pages for .io games and for Flash through Ruffle.
 
-## Quick Start — Linux / macOS (No Docker)
+## How it works
 
-```bash
-chmod +x start.sh
-./start.sh
+```
+browser  --HTTP/JSON-->  Express (server.js)  -->  SQLite (better-sqlite3)
+   |                              |
+   +---------Socket.IO------------+
+   (chat, voice signalling, admin)
 ```
 
-Or manually: `npm install && node server.js`
+One Node.js process does everything. It serves the client from `public/`, the JSON API, and the Socket.IO endpoint that carries chat, presence, voice signalling and the admin panel. There is no build step for the client: `public/app.html` loads `public/js/app.js` as an ES module, and that file pulls in eleven modules from `public/js/modules/` and merges them onto the prototype of one class.
 
----
+The database is SQLite through better-sqlite3. The schema lives in `src/database.js`, which creates the tables and adds the columns an older install is missing every time the server starts. Users, channels, memberships, messages, reactions, roles, permissions, webhooks, read positions and settings are all rows.
 
-## Who Is This For?
+Voice is WebRTC. The server never carries audio: it relays the offer, the answer and the ICE candidates between the participants. The client asks `/api/ice-servers` for its STUN and TURN configuration, and the server answers with two Google STUN servers plus, when the operator has set `TURN_URL`, a coturn relay. With a TURN shared secret the credentials are HMAC-SHA1 and expire after 24 hours.
 
-- **Small friend groups** who want a private place to talk
-- **Self-hosters** who run services on their own hardware
-- **Privacy-conscious communities** done with Big Tech
-- **LAN gaming crews** who need voice + screen share without Discord
-- **Homelab enthusiasts** looking for a lightweight chat service
+Push notifications come in two shapes. The browser gets web-push with VAPID keys that are generated on the first boot and written to `.env`. The mobile client gets Firebase Cloud Messaging, which the server reaches directly with a service account, through a relay of your own, or through the shared relay the project runs, depending on what is configured.
 
----
-
-
-<img width="1918" height="945" alt="Screenshot 2026-02-13 174344" src="https://github.com/user-attachments/assets/a1925091-46de-4fa6-bb8d-788985c974be" />
-
-
-## Why Not Discord?
-
-| | Discord | Haven |
-|---|---------|-------|
-| **Hosting** | Their cloud | Your machine |
-| **Account** | Email + phone required | No email, no verification |
-| **Your data** | Stored by Discord Inc. | Never leaves your server |
-| **Cost** | Nitro upsells, boosts | Free forever |
-| **Telemetry** | Analytics, tracking | Zero telemetry |
-| **Source code** | Closed | Open (MIT-NC) |
-
----
-
-## Features
-
-| Category | What You Get |
-|----------|-------------|
-| **Chat** | Real-time messaging, image uploads (paste/drag/drop) with click-to-enlarge lightbox, typing indicators, message editing, replies, emoji reactions, @mentions with autocomplete, `:emoji` autocomplete, message pinning (admin) |
-| **Voice** | Peer-to-peer audio chat, per-user volume sliders, mute/deafen, join/leave audio cues, talking indicators, click usernames for profile/DM |
-| **Screen Share** | Multi-stream screen sharing with tiled grid layout, per-user video tiles, one-click close |
-| **Channels** | Hierarchical channels with sub-channels, private (invite-only) sub-channels with 🔒 indicator, channel topics |
-| **Join Codes** | Per-channel invite codes with admin controls: public/private visibility, static/dynamic mode, time-based or join-based auto-rotation, manual rotation |
-| **Avatars** | Upload profile pictures (including animated GIFs!), choose avatar shape (circle/square/hexagon/diamond), per-user shapes visible to everyone |
-| **Formatting** | **Bold**, *italic*, ~~strikethrough~~, `code`, \|\|spoilers\|\|, auto-linked URLs, fenced code blocks with language labels, blockquotes |
-| **Link Previews** | Automatic OG metadata previews for shared URLs with title, description, and thumbnail |
-| **GIF Search** | GIPHY-powered GIF picker — search and send GIFs inline (admin-configurable API key) |
-| **Direct Messages** | Private 1-on-1 conversations — click 💬 on any user in the member list |
-| **User Status** | Online, Away, Do Not Disturb, Invisible — with custom status text and auto-away after 5 min idle |
-| **File Sharing** | Upload and share PDFs, documents, audio, video, archives (up to 25 MB) with inline players |
-| **Persistent Unread** | Server-tracked read state — unread badges survive page refreshes and reconnects |
-| **Slash Commands** | `/shrug`, `/tableflip`, `/roll 2d20`, `/flip`, `/me`, `/spoiler`, `/tts`, and more — type `/` to see them all |
-| **Search** | Search messages in any channel with Ctrl+F |
-| **Themes** | 20+ themes with stackable visual effects: CRT, Matrix Rain, Cyberpunk Text Scramble, Snowfall, Campfire Embers, and more — configurable intensity/frequency sliders |
-| **Multi-Server** | Add friends' Haven servers to your sidebar with live online/offline status |
-| **Notifications** | 5 notification sounds, per-channel volume controls |
-| **Moderation** | Admin: kick, mute (timed), ban, delete users, delete channels, auto-cleanup. Role system with granular permissions. |
-| **Security** | Bcrypt passwords, JWT auth, HTTPS/SSL, rate limiting, CSP headers, input validation |
-| **E2E Encryption** | ECDH P-256 + AES-256-GCM encrypted DMs — private keys never leave the browser |
-| **Discord Import** | Import your entire Discord server history — channels, threads, forums, reactions, pins, avatars — directly from Haven's UI or via file upload |
-| **Game** | Shippy Container — Drew's shipment got hung up. Server-wide leaderboard. |
-
-
-<img width="1917" height="911" alt="Screenshot 2026-02-16 013038" src="https://github.com/user-attachments/assets/79b62980-0822-4e9d-b346-c5a93de95862" />
-
-
----
-
-## Letting Friends Connect Over the Internet
-
-If your friends aren't on your WiFi, you need to open a port on your router.
-
-### Step 1 — Find Your Public IP
-
-Go to [whatismyip.com](https://whatismyip.com). That's the address your friends will use.
-
-### Step 2 — Port Forward
-
-1. Log into your router (usually `http://192.168.1.1` or `http://10.0.0.1`)
-2. Find **Port Forwarding** (sometimes called NAT or Virtual Servers)
-3. Forward port **3000** (TCP) to your PC's local IP
-4. Save
-
-> **Find your local IP:** Open Command Prompt → type `ipconfig` → look for IPv4 Address (e.g. `192.168.1.50`)
-
-### Step 3 — Windows Firewall
-
-Open PowerShell as Administrator and run:
-```powershell
-New-NetFirewallRule -DisplayName "Haven Chat" -Direction Inbound -LocalPort 3000 -Protocol TCP -Action Allow
-```
-
-### Step 4 — Share With Friends
-
-Send them:
-```
-https://YOUR_PUBLIC_IP:3000
-```
-
-Tell them to click **Advanced** → **Proceed** on the certificate warning. It's normal.
-
----
+Uploads are written to the data directory and served from `/uploads`. Anything that is not a JPEG, PNG, GIF or WebP is sent with `Content-Disposition: attachment`, so a browser cannot execute an uploaded file.
 
 ## Configuration
 
-Haven creates a `.env` config file automatically on first launch — you don't need to create or rename anything. It lives in your **data directory**:
+The server reads `.env` from the data directory, and creates it from `.env.example` on the first boot. It replaces the placeholder `JWT_SECRET` with 48 random bytes in base64 and appends a VAPID key pair, both in the same file.
 
-| OS | Data Directory |
-|----|---------------|
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `PORT` | `3000` | The port the server listens on. The HTTP redirect server takes the next port up, 3001. |
+| `HOST` | `0.0.0.0` | The address it binds to. |
+| `SERVER_NAME` | `Haven` | The name shown in the sidebar and in the multi-server list. |
+| `ADMIN_USERNAME` | `admin` | The username that carries admin rights. It is re-read on every login. |
+| `JWT_SECRET` | generated | Signs the session tokens. |
+| `SSL_CERT_PATH` | detected | The certificate. A relative path resolves against the data directory. |
+| `SSL_KEY_PATH` | detected | The private key. |
+| `FORCE_HTTP` | `false` | Serve plain HTTP even when a certificate exists, for a reverse proxy in front. |
+| `HAVEN_DATA_DIR` | per system | Where the database, the configuration, the certificates and the uploads live. |
+| `TURN_URL` | none | The TURN relay for voice across NAT. |
+| `TURN_SECRET` | none | The shared secret of that relay, used for HMAC credentials that expire in 24 hours. |
+| `TURN_USERNAME`, `TURN_PASSWORD` | none | Static credentials for that relay, used when there is no shared secret. |
+| `GIPHY_API_KEY` | none | Turns the GIF picker on. |
+| `VAPID_EMAIL` | `mailto:admin@haven.local` | The contact address in the web-push subscription. |
+| `FIREBASE_SERVICE_ACCOUNT` | none | The path to a service account JSON, for mobile push sent directly. |
+| `FCM_RELAY_URL`, `FCM_PUSH_KEY` | the shared relay | Mobile push through a relay of your own. |
+
+The data directory holds `haven.db`, `.env`, `certs/` and `uploads/`, and it sits outside the code folder so that copying the checkout never copies a conversation.
+
+| System | Data directory |
+| --- | --- |
 | Windows | `%APPDATA%\Haven\` |
-| Linux / macOS | `~/.haven/` |
+| Linux, macOS | `~/.haven/` |
 
-| Setting | Default | What It Does |
-|---------|---------|-------------|
-| `PORT` | `3000` | Server port |
-| `SERVER_NAME` | `Haven` | Your server's display name |
-| `ADMIN_USERNAME` | `admin` | Register with this name to get admin powers |
-| `JWT_SECRET` | *(auto-generated)* | Security key — don't share or edit this |
-| `SSL_CERT_PATH` | *(auto-detected)* | Path to SSL certificate |
-| `SSL_KEY_PATH` | *(auto-detected)* | Path to SSL private key |
-| `HAVEN_DATA_DIR` | *(see above)* | Override the data directory location |
+The rest of the settings live in the database and are changed from the admin panel: `member_visibility`, `cleanup_enabled`, `cleanup_max_age_days`, `cleanup_max_size_mb`, `max_upload_mb`, `server_name`, `server_icon`, `server_code`, `whitelist_enabled`, `default_theme`, `permission_thresholds` and `giphy_api_key`.
 
-After editing `.env`, restart the server.
+## Development
 
----
+```bash
+npm ci          # install
+npm start       # run the server
+npm run dev     # run it with node --watch
+```
 
-## Slash Commands
+Node 18 to 24. There is no build step and no test suite: the repository has no `test` script, and the workflows that run build the Docker image for amd64 and arm64 and attach a tarball to each release.
 
-Type `/` in the message box to see the full list. Here are some highlights:
+| Path | What it holds |
+| --- | --- |
+| `server.js` | The Express app, the HTTP routes, the upload handlers, the Discord import and the auto-cleanup timer. |
+| `src/socketHandlers.js` | Every Socket.IO event: channels, messages, voice signalling, roles, moderation, webhooks. |
+| `src/auth.js` | Registration, login, TOTP, recovery codes, the rate limiter and the token helpers. |
+| `src/database.js` | The schema, the migrations that run at startup, and the prepared statement cache. |
+| `src/paths.js` | Where the data directory is, and the move of old data out of the project folder. |
+| `src/tunnel.js` | The localtunnel and cloudflared tunnel that expose the server without port forwarding. |
+| `src/fcm.js` | Mobile push, in direct, relay and shared-relay modes. |
+| `src/importDiscord.js` | The parser for DiscordChatExporter JSON and for Discord data packages. |
+| `public/app.html`, `public/index.html` | The chat client and the login page. |
+| `public/js/modules/` | The eleven client modules, one per concern. |
+| `public/js/voice.js`, `public/js/e2e.js` | The WebRTC manager and the encryption manager. |
+| `installer/` | The local web installer, built on the Node standard library alone. |
+| `haven-push-relay/` | The Firebase Cloud Function and a standalone relay for mobile push. |
+| `plugins/`, `themes/` | Drop-in plugins and themes, read at runtime. |
+| `website/`, `docs/` | The landing page and the guides. |
 
-| Command | What It Does |
-|---------|-------------|
-| `/shrug` | ¯\\_(ツ)_/¯ |
-| `/tableflip` | (╯°□°)╯︵ ┻━┻ |
-| `/unflip` | ┬─┬ ノ( ゜-゜ノ) |
-| `/roll 2d20` | Roll dice (any NdN format) |
-| `/flip` | Flip a coin |
-| `/me does something` | Italic action text |
-| `/spoiler secret text` | Hidden spoiler text |
-| `/tts hello` | Text-to-speech |
-| `/nick NewName` | Change your username |
-| `/clear` | Clear your chat view |
-| `/bbs` | "Will be back soon" |
-| `/afk` | "Away from keyboard" |
-
----
-
-## Themes
-
-25 themes, switchable from the sidebar:
-
-**Haven** · **Discord** · **Matrix** · **Tron** · **HALO** · **Lord of the Rings** · **Cyberpunk** · **Nord** · **Dracula** · **Bloodborne** · **Ice** · **Abyss**
-
-Your theme choice persists across sessions.
-
-
-<img width="1919" height="908" alt="Screenshot 2026-02-16 013319" src="https://github.com/user-attachments/assets/f061491e-d998-4160-9971-b846cea83cd4" />
-
-
----
-
-## Voice Chat
-
-1. Join a text channel
-2. Click **🎤 Join Voice**
-3. Allow microphone access
-4. Adjust anyone's volume with their slider
-5. Click **📞 Leave** when done
-
-Voice is peer-to-peer — audio goes directly between users, not through the server. Requires HTTPS.
-
-- **Join / leave cues** — synthesized audio tones when users enter or leave voice.
-- **Talking indicators** — usernames glow green when speaking (300 ms hysteresis for smooth animation).
-- **Screen sharing** — click **🖥️ Share Screen** to broadcast your display. Multiple users can share simultaneously in a tiled grid.
-
----
-
-## Admin Guide
-
-If you registered with the admin username, you can:
-
-- **Create / delete channels**
-- **Kick users** — disconnects them (they can rejoin)
-- **Mute users** — timed mute (can't send messages)
-- **Ban users** — permanent ban (can't connect)
-- **Delete users** — remove banned accounts (frees up their username)
-- **Auto-cleanup** — configure automatic deletion of old messages (Settings → Admin)
-- **Server settings** — EULA, max message age, DB size limits
-
-Access admin controls in the **Settings** panel (⚙️ gear icon in the sidebar).
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| "SSL_ERROR_RX_RECORD_TOO_LONG" | Your browser is using `https://` but the server is running HTTP. **Change the URL to `http://localhost:3000`**, or install OpenSSL and restart to enable HTTPS (see below). |
-| "Node.js is not installed" | The launcher offers to install it automatically. Or run `winget install OpenJS.NodeJS.LTS` in a terminal, restart, and try again. |
-| Browser shows blank page | Clear cache or try incognito/private window |
-| Friends can't connect | Check port forwarding + firewall. Make sure server is running. |
-| "Error: EADDRINUSE" | Another app is using port 3000. Change `PORT` in `.env`. |
-| Voice chat echoes | Use headphones |
-| Voice doesn't work remotely | Must use `https://`, not `http://` |
-| Certificate error in browser | Normal — click Advanced → Proceed |
-
-### HTTPS / SSL Details
-
-Haven **automatically generates self-signed SSL certificates** on first launch — but only if **OpenSSL** is installed on your system.
-
-**How to tell which mode you're in:** Look at the startup banner in the terminal window. If the URL shows `http://` — you're on HTTP. If it shows `https://` — you're on HTTPS.
-
-**If Haven falls back to HTTP** (no OpenSSL, or cert generation failed):
-- Everything works fine for local use — just use `http://localhost:3000`
-- Voice chat will only work on localhost, not for remote friends
-- To enable HTTPS:
-  1. Install OpenSSL: [slproweb.com/products/Win32OpenSSL.html](https://slproweb.com/products/Win32OpenSSL.html) (the "Light" version)
-  2. During install, choose "Copy OpenSSL DLLs to the Windows system directory"
-  3. Restart your PC
-  4. Delete `%APPDATA%\Haven\certs` and re-launch `Start Haven.bat`
-
----
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `Shift+Enter` | New line |
-| `Ctrl+F` | Search messages |
-| `@` | @mention autocomplete |
-| `:` | Emoji autocomplete (type 2+ chars) |
-| `/` | Slash command autocomplete |
-| `Tab` | Select autocomplete suggestion |
-
----
-
-## Backing Up Your Data
-
-All your data lives in a dedicated directory **outside** the Haven code folder:
-
-| OS | Location |
-|----|----------|
-| Windows | `%APPDATA%\Haven\` |
-| Linux / macOS | `~/.haven/` |
-
-Inside you'll find:
-- **`haven.db`** — all messages, users, and channels
-- **`.env`** — your configuration
-- **`certs/`** — SSL certificates
-- **`uploads/`** — uploaded images
-
-Copy the entire folder somewhere safe to back up everything. The Haven code directory contains no personal data.
-
----
-
-## GIF Search — GIPHY API Setup
-
-Haven has a built-in GIF picker powered by **GIPHY**. To enable it you need a free API key.
-
-### 1. Create a GIPHY Developer Account
-
-1. Go to [developers.giphy.com](https://developers.giphy.com/)
-2. Sign up for an account (or sign in)
-
-### 2. Create an App
-
-1. Click **Create an App**
-2. Choose **API** (not SDK)
-3. Give it any name (e.g. "Haven Chat") and a short description
-4. Copy the **API Key** shown on the next page
-
-### 3. Add the Key in Haven
-
-1. Log into Haven as your **admin** account
-2. Click the **GIF button** (🎞️) in the message input area
-3. You'll see a setup prompt — paste your API key and save
-4. The key is stored server-side in the database — only admins can see or change it
-
-That's it. All users can now search and send GIFs.
-
-> **Free tier:** GIPHY's free tier allows plenty of requests for a private chat server — you'll never come close to the limit.
-
----
-
-## Roadmap
-
-Planned features — roughly in priority order:
-
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Sub-channels** | ✅ Done | Hierarchical channels with auto-membership inheritance and private (invite-only) sub-channels |
-| **Join code management** | ✅ Done | Admin controls: public/private visibility, static/dynamic mode, time/join-based rotation |
-| **Role system** | ✅ Done | Role-based access with granular per-channel permissions |
-| **Avatar system** | ✅ Done | Profile picture uploads with selectable avatar shapes (circle, square, hexagon, diamond) |
-| **Effect system** | ✅ Done | 15+ stackable visual effects with configurable intensity/frequency |
-| **Webhook / Bot support** | ✅ Done | Incoming webhooks and a lightweight bot API for external integrations |
-| **Thread replies** | 📋 Planned | Threaded conversations that branch off a message |
-| **End-to-end encryption** | ✅ Done | ECDH P-256 + AES-256-GCM encryption for DMs — private keys stay in the browser |
-| **Multi-factor authentication** | 📋 Planned | U2F/FIDO key and TOTP support, with optional admin MFA requirement |
-| **Session invalidation on password change** | 📋 Planned | All active sessions are forcibly logged out when a user changes their password |
-| **Recovery-key password reset** | 📋 Planned | Generate a 24-word recovery phrase from settings — used to reset your password without losing E2E DM history. Existing users get a one-time prompt to generate theirs. No admin involvement, no email required. |
-| **Android App** | 🟢 Closed Beta! | [Request Beta Access](https://amni-scient.com/amni-haven.html) |
-| **Desktop App** | ✅ Beta! | https://github.com/ancsemi/Haven-Desktop |
-
-> Want something else? Open an issue — PRs are always welcome.
-
----
+The client files are imported with a `?v=` query string, and the versions in `public/js/app.js` and `public/app.html` are per file rather than per release. Bump the one you touched, or a browser that cached the module will keep running the old code.
 
 ## License
 
-MIT-NC — free to use, modify, and share. **Not for resale.** See [LICENSE](LICENSE).
-
-Original project: [github.com/ancsemi/Haven](https://github.com/ancsemi/Haven)
-
----
-
-<p align="center">
-  <b>⬡ Haven</b> — Because your conversations are yours.
-</p>
+MIT-NC, copyright 2026 the Haven contributors. The MIT terms carry a non-commercial clause: the software may not be sold or monetised without written permission from the original author. See [LICENSE](LICENSE).

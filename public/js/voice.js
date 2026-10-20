@@ -356,7 +356,7 @@ class VoiceManager {
       this.voiceSessionId = this._createVoiceSessionId();
       this.inVoice = true;
       this.isMuted = false;
-      
+
       // Persist voice channel for auto-rejoin after page refresh or server restart
       try { localStorage.setItem('haven_voice_channel', channelCode); } catch {}
 
@@ -448,10 +448,10 @@ class VoiceManager {
     }
     // Clear cached silent track
     this._cachedSilentTrack = null;
-    
+
     // Clear persisted voice channel
     try { localStorage.removeItem('haven_voice_channel'); } catch {}
-    
+
     // Clear any pending disconnect-recovery timers
     if (this._disconnectTimers) {
       for (const key of Object.keys(this._disconnectTimers)) {

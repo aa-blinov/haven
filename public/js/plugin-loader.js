@@ -1,16 +1,16 @@
 /**
  * Haven Plugin & Theme Loader
- * 
+ *
  * Plugins:  Drop .plugin.js files into Haven/plugins/
  * Themes:   Drop .theme.css files into Haven/themes/
- * 
+ *
  * Plugin format:
  *   /** @name MyPlugin  @description Does things  @author Me  @version 1.0 *​/
  *   class MyPlugin {
  *     start() { /* called when enabled *​/ }
  *     stop()  { /* called when disabled *​/ }
  *   }
- * 
+ *
  * Theme format:
  *   /** @name MyTheme  @description Dark neon  @author Me  @version 1.0 *​/
  *   :root { --bg-primary: #000; ... }

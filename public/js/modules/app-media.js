@@ -214,7 +214,7 @@ async _commitAvatarSettings() {
       localStorage.setItem('haven_user', JSON.stringify(this.user));
       this._pendingAvatarFile = null;
       this._pendingAvatarPreviewUrl = null;
-      
+
       // Update preview to use the server URL
       const preview = document.getElementById('avatar-upload-preview');
       if (preview) {
@@ -224,7 +224,7 @@ async _commitAvatarSettings() {
         preview.innerHTML = '';
         preview.appendChild(img);
       }
-      
+
       // Notify connected sockets about the avatar change (small URL, not data URL)
       if (this.socket) this.socket.emit('set-avatar', { url: data.url });
     }
@@ -243,7 +243,7 @@ async _commitAvatarSettings() {
       this.user.avatar = null;
       localStorage.setItem('haven_user', JSON.stringify(this.user));
       this._pendingAvatarRemoved = false;
-      
+
       if (this.socket) this.socket.emit('set-avatar', { url: '' });
     }
 
@@ -263,7 +263,7 @@ async _commitAvatarSettings() {
       this.user.avatarShape = this._pendingAvatarShape;
       localStorage.setItem('haven_avatar_shape', this._pendingAvatarShape);
       localStorage.setItem('haven_user', JSON.stringify(this.user));
-      
+
       if (this.socket) this.socket.emit('set-avatar-shape', { shape: this._pendingAvatarShape });
     }
 

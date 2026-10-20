@@ -1,4 +1,4 @@
-<# 
+<#
   Haven — Let's Encrypt SSL Certificate Setup (Windows)
 
   This script uses win-acme (ACME client for Windows) to obtain a free
@@ -79,10 +79,10 @@ switch ($method) {
       Write-Host "[*] Downloading win-acme..." -ForegroundColor Cyan
       $wacmeUrl = "https://github.com/win-acme/win-acme/releases/download/v2.2.9.1/win-acme.v2.2.9.1.x64.pluggable.zip"
       $zipPath  = Join-Path $TempDir "win-acme.zip"
-      
+
       [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       Invoke-WebRequest -Uri $wacmeUrl -OutFile $zipPath -UseBasicParsing
-      
+
       Write-Host "[*] Extracting..." -ForegroundColor Cyan
       Expand-Archive -Path $zipPath -DestinationPath $wacmeDir -Force
       Remove-Item $zipPath -ErrorAction SilentlyContinue

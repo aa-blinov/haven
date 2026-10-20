@@ -140,7 +140,7 @@ class HavenApp {
     });
     this.voice = new VoiceManager(this.socket);
     if (this.user && this.user.id) this.voice.localUserId = this.user.id;
-    
+
     // CRITICAL FIX: Run avatar setup first and use delegation to ensure listeners work
     this._setupAvatarUpload();
 
