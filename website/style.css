@@ -608,10 +608,39 @@ figcaption {
   }
 }
 
-/* The rows of short labels. The rail lays the row out, and each label hugs
-   its own text instead of stretching to the width of the column. */
-.rail .tag {
-  justify-self: start;
+/* The rows of short labels pack together instead of taking a column each:
+   the shared rail gives every item a column of at least 220 pixels, which
+   is too much room for a two-word label. */
+.rail:has(> .tag) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-sm);
+}
+
+/* The script hides the button that belongs to another platform. A hidden
+   attribute does not hide a button that the house style gives a display
+   of its own, so the rule is here. */
+.button[hidden] {
+  display: none;
+}
+
+/* The phone screenshots are tall. A gallery of them would be a column of
+   them, so the height is capped and the width follows the picture. */
+.gallery img {
+  max-height: 460px;
+  width: auto;
+}
+
+/* The phone screens stand in a row of their own. A gallery cell is 500
+   pixels wide, and a phone at that width is two screens high. */
+.phones {
+  grid-template-columns: repeat(2, minmax(0, 220px));
+}
+
+@media (max-width: 520px) {
+  .phones {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* The numbered steps. The rail turns the list markers off, so the number
@@ -657,12 +686,18 @@ details[open] > summary {
   margin-bottom: var(--gap-sm);
 }
 
-/* The support page is text only. The shared hero grid has two columns and
-   this page has nothing to put in the second one. */
-body.support .hero {
+/* The hero carries a long pasteable command and a wide screenshot, and
+   neither of them fits in half the page, so the hero is one column with
+   the picture under the text. */
+.hero {
   grid-template-columns: minmax(0, 1fr);
 }
 
-body.support .hero-copy {
-  max-width: 46rem;
+.hero > * {
+  min-width: 0;
+}
+
+.hero-copy,
+.hero figure {
+  max-width: 52rem;
 }
